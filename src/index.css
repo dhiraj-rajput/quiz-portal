@@ -1,0 +1,6 @@
+/* Import our custom styles first */
+@import './styles/index.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

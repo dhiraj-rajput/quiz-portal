@@ -1,0 +1,239 @@
+/* Common Component Styles */
+
+/* Loading States */
+.loading-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center;
+}
+
+.loading-content {
+  @apply text-center;
+}
+
+.loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto;
+}
+
+.loading-text {
+  @apply mt-4 text-gray-600 dark:text-gray-400;
+}
+
+/* Cards */
+.card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg;
+}
+
+.card-padding {
+  @apply p-6;
+}
+
+.card-padding-lg {
+  @apply p-8;
+}
+
+/* Buttons */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.btn-secondary {
+  @apply bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-400 dark:hover:bg-gray-500;
+}
+
+.btn-success {
+  @apply bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+}
+
+.btn-warning {
+  @apply bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2;
+}
+
+.btn-disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.btn-sm {
+  @apply px-3 py-1 text-sm;
+}
+
+.btn-lg {
+  @apply px-6 py-3 text-lg;
+}
+
+/* Form Elements */
+.form-input {
+  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+}
+
+.form-error {
+  @apply text-red-600 dark:text-red-400 text-sm mt-1;
+}
+
+.form-group {
+  @apply mb-4;
+}
+
+/* Alert Messages */
+.alert {
+  @apply px-4 py-3 rounded-md border;
+}
+
+.alert-info {
+  @apply bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400;
+}
+
+.alert-success {
+  @apply bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-600 dark:text-green-400;
+}
+
+.alert-warning {
+  @apply bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400;
+}
+
+.alert-error {
+  @apply bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400;
+}
+
+/* Typography */
+.heading-1 {
+  @apply text-4xl font-bold text-gray-900 dark:text-white;
+}
+
+.heading-2 {
+  @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+.heading-3 {
+  @apply text-2xl font-bold text-gray-900 dark:text-white;
+}
+
+.heading-4 {
+  @apply text-xl font-semibold text-gray-900 dark:text-white;
+}
+
+.heading-5 {
+  @apply text-lg font-semibold text-gray-900 dark:text-white;
+}
+
+.text-body {
+  @apply text-gray-700 dark:text-gray-300;
+}
+
+.text-muted {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+.text-small {
+  @apply text-sm text-gray-600 dark:text-gray-400;
+}
+
+/* Layout */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-sm {
+  @apply max-w-3xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.flex-between {
+  @apply flex items-center justify-between;
+}
+
+.grid-responsive {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+/* Icons */
+.icon-sm {
+  @apply h-4 w-4;
+}
+
+.icon-md {
+  @apply h-5 w-5;
+}
+
+.icon-lg {
+  @apply h-6 w-6;
+}
+
+.icon-xl {
+  @apply h-8 w-8;
+}
+
+/* Shadows */
+.shadow-card {
+  @apply shadow-md hover:shadow-lg transition-shadow duration-200;
+}
+
+/* Borders */
+.border-divider {
+  @apply border-gray-200 dark:border-gray-700;
+}
+
+/* Spacing */
+.section-padding {
+  @apply py-8;
+}
+
+.section-margin {
+  @apply my-8;
+}
+
+/* Responsive */
+.responsive-text {
+  @apply text-sm sm:text-base;
+}
+
+.responsive-padding {
+  @apply p-4 sm:p-6;
+}
+
+/* Focus States */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
