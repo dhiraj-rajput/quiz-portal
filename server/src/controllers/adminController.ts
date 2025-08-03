@@ -114,6 +114,8 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
     const { id } = req.params;
     const { role } = req.body;
 
+    console.log(`Attempting to approve user with ID: ${id}, role: ${role}`);
+
     // Validate role
     if (!role || !['admin', 'student'].includes(role)) {
       return next(new AppError('Valid role (admin or student) is required', 400));
@@ -121,13 +123,18 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
 
     // Find the pending request (include password field)
     const pendingRequest = await PendingRequest.findById(id).select('+password');
+    console.log(`Pending request found:`, pendingRequest ? 'Yes' : 'No');
+    
     if (!pendingRequest) {
-      return next(new AppError('Pending request not found', 404));
+      return next(new AppError('Pending request not found or may have already been processed', 404));
     }
 
     // Check if user with same email already exists
     const existingUser = await User.findOne({ email: pendingRequest.email });
     if (existingUser) {
+      console.log(`User already exists with email: ${pendingRequest.email}`);
+      // Remove the pending request since user already exists
+      await PendingRequest.findByIdAndDelete(id);
       return next(new AppError('User with this email already exists', 400));
     }
 

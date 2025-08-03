@@ -74,18 +74,26 @@ app.use(process.env.NODE_ENV === 'development' ? morgan('dev') : morgan('combine
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiter
+// Rate limiter (relaxed for development)
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // Increased to 1000
   message: {
     error: 'Too many requests from this IP, please try again later.',
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limiting in development
 });
 app.set('trust proxy', 1);
-app.use(limiter);
+
+// Only apply rate limiting in production
+if (process.env.NODE_ENV !== 'development') {
+  app.use(limiter);
+  console.log('🚦 Rate limiting enabled for production');
+} else {
+  console.log('🚦 Rate limiting disabled for development');
+}
 
 // Health check
 app.get('/health', (_req, res) => {

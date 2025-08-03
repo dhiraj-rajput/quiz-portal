@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import { protect, AuthenticatedRequest } from '../middleware/auth';
+import { AuthenticatedRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import Module from '../models/Module';
 import ModuleAssignment from '../models/ModuleAssignment';
