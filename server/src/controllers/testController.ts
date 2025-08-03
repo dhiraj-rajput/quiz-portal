@@ -544,7 +544,7 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response, next:
     let correctAnswers = 0;
     let score = 0;
 
-    const processedAnswers = answers.map((answer: any, index: number) => {
+    const processedAnswers = answers.map((answer: any) => {
       const question = test.questions.find(q => q._id!.toString() === answer.questionId);
       if (!question) {
         return {
@@ -562,10 +562,10 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response, next:
       
       // Check correctness based on either selectedOptionId or selectedAnswer
       if (answer.selectedOptionId) {
-        isCorrect = correctOption && correctOption._id!.toString() === answer.selectedOptionId;
+        isCorrect = !!(correctOption && correctOption._id!.toString() === answer.selectedOptionId);
       } else if (answer.selectedAnswer !== undefined) {
         const selectedOption = question.options[answer.selectedAnswer];
-        isCorrect = correctOption && selectedOption && selectedOption._id!.toString() === correctOption._id!.toString();
+        isCorrect = !!(correctOption && selectedOption && selectedOption._id!.toString() === correctOption._id!.toString());
       }
       
       const pointsEarned = isCorrect ? question.points : 0;
@@ -579,7 +579,7 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response, next:
         questionId: answer.questionId,
         selectedAnswer: answer.selectedAnswer !== undefined ? answer.selectedAnswer : 
                       (answer.selectedOptionId ? question.options.findIndex(opt => opt._id!.toString() === answer.selectedOptionId) : 0),
-        isCorrect,
+        isCorrect: isCorrect || false,
         pointsEarned,
         timeSpent: answer.timeSpent || 0,
       };

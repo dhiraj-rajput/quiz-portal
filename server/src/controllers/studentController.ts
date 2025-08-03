@@ -32,25 +32,33 @@ export const getStudentDashboard = async (req: AuthenticatedRequest, res: Respon
       isActive: true,
     });
 
-    // Get completed tests count (unique tests completed, not total attempts)
-    const completedTestsResult = await TestResult.aggregate([
-      {
-        $match: {
-          userId: userId,
-          isCompleted: true,
-        }
-      },
-      {
-        $group: {
-          _id: '$testId',
-        }
-      },
-      {
-        $count: 'uniqueTestsCompleted'
-      }
-    ]);
+    // Get completed tests count (tests that are either passed or max attempts reached)
+    const assignedTestsList = await TestAssignment.find({
+      assignedTo: { $in: [userId] },
+      isActive: true,
+    }).select('testId maxAttempts');
+
+    let completedTestsCount = 0;
     
-    const completedTestsCount = completedTestsResult.length > 0 ? completedTestsResult[0].uniqueTestsCompleted : 0;
+    for (const assignment of assignedTestsList) {
+      const attemptCount = await TestResult.countDocuments({
+        userId: userId,
+        testId: assignment.testId,
+        isCompleted: true,
+      });
+      
+      // Count as completed if: 1) Successfully completed OR 2) Max attempts reached
+      const hasCompletedTest = await TestResult.findOne({
+        userId: userId,
+        testId: assignment.testId,
+        isCompleted: true,
+        // You might want to add a success criteria here like percentage >= passingScore
+      });
+      
+      if (hasCompletedTest || attemptCount >= assignment.maxAttempts) {
+        completedTestsCount++;
+      }
+    }
 
     // Get recent test results (last 5)
     const recentTestResults = await TestResult.find({
@@ -62,8 +70,8 @@ export const getStudentDashboard = async (req: AuthenticatedRequest, res: Respon
       .limit(5)
       .select('testId score percentage submittedAt attemptNumber');
 
-    // Get upcoming test assignments (next 5)
-    const upcomingTests = await TestAssignment.find({
+    // Get upcoming test assignments with attempt information
+    const upcomingTestAssignments = await TestAssignment.find({
       assignedTo: { $in: [userId] },
       isActive: true,
       dueDate: { $gte: new Date() },
@@ -73,16 +81,47 @@ export const getStudentDashboard = async (req: AuthenticatedRequest, res: Respon
       .limit(5)
       .select('testId dueDate timeLimit maxAttempts');
 
-    // Get recent module assignments (last 5)
+    // For each upcoming test, get the current attempt count
+    const upcomingTests = await Promise.all(
+      upcomingTestAssignments.map(async (assignment) => {
+        const currentAttempts = await TestResult.countDocuments({
+          userId: userId,
+          testId: assignment.testId._id,
+          isCompleted: true,
+        });
+
+        return {
+          ...assignment.toObject(),
+          currentAttempts,
+          hasRemainingAttempts: currentAttempts < assignment.maxAttempts,
+        };
+      })
+    );
+
+    // Filter out tests where max attempts have been reached
+    const availableUpcomingTests = upcomingTests.filter(test => test.hasRemainingAttempts);
+
+    // Get recent module assignments (last 5) - exclude completed ones
     const recentModules = await ModuleAssignment.find({
       assignedTo: { $in: [userId] },
       isActive: true,
+      'completedBy.studentId': { $ne: userId }, // Exclude modules completed by this student
     })
       .populate('moduleId', 'title description')
       .populate('assignedBy', 'firstName lastName')
       .sort({ createdAt: -1 })
       .limit(5)
-      .select('moduleId assignedBy createdAt dueDate');
+      .select('moduleId assignedBy createdAt dueDate completedBy');
+
+    // Debug logging for progress calculation
+    console.log('Dashboard Progress Debug:', {
+      userId,
+      assignedModulesCount,
+      completedModulesCount,
+      assignedTestsCount,
+      completedTestsCount,
+      totalAssignedTests: assignedTestsList.length
+    });
 
     res.status(200).json({
       success: true,
@@ -95,7 +134,7 @@ export const getStudentDashboard = async (req: AuthenticatedRequest, res: Respon
         },
         recentActivity: {
           recentTestResults,
-          upcomingTests,
+          upcomingTests: availableUpcomingTests,
           recentModules,
         },
       },
@@ -115,6 +154,8 @@ export const getAssignedModules = async (req: AuthenticatedRequest, res: Respons
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
+    console.log('getAssignedModules: Request from user:', userId, 'page:', page, 'limit:', limit);
+
     // Get assigned modules with pagination
     const moduleAssignments = await ModuleAssignment.find({
       assignedTo: { $in: [userId] },
@@ -125,6 +166,8 @@ export const getAssignedModules = async (req: AuthenticatedRequest, res: Respons
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
+
+    console.log('getAssignedModules: Found', moduleAssignments.length, 'assignments');
 
     // Add completion status for each assignment
     const assignmentsWithStatus = moduleAssignments.map(assignment => {
@@ -196,12 +239,13 @@ export const getAssignedTests = async (req: AuthenticatedRequest, res: Response,
       testAssignments.map(async (assignment) => {
         const attemptCount = await TestResult.countDocuments({
           userId: userId,
-          assignmentId: assignment._id,
+          testId: assignment.testId._id,
+          isCompleted: true,
         });
 
         const bestResult = await TestResult.findOne({
           userId: userId,
-          assignmentId: assignment._id,
+          testId: assignment.testId._id,
           isCompleted: true,
         })
           .sort({ score: -1 })

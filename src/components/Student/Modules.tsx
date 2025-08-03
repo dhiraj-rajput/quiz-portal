@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Clock, FileText, Download, ExternalLink } from 'lucide-react';
+import { BookOpen, Clock, FileText, ExternalLink } from 'lucide-react';
 import { studentAPI } from '../../utils/api';
 
 interface Module {
@@ -65,38 +65,6 @@ const StudentModules: React.FC = () => {
       console.error('Error marking module as complete:', error);
       alert('Error marking module as complete. Please try again.');
     }
-  };
-
-  const handleDownloadFile = (moduleId: string, fileName: string) => {
-    // Create a download URL and trigger download
-    const downloadUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/files/modules/${moduleId}/${encodeURIComponent(fileName)}/download`;
-    
-    // Create a temporary link element and trigger download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = fileName;
-    link.target = '_blank';
-    
-    // Add authorization header by creating a fetch request instead
-    fetch(downloadUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    })
-    .then(response => response.blob())
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob);
-      link.href = url;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    })
-    .catch(error => {
-      console.error('Download error:', error);
-      alert('Error downloading file. Please try again.');
-    });
   };
 
   const formatDate = (dateString: string) => {
@@ -200,19 +168,11 @@ const StudentModules: React.FC = () => {
                       </h4>
                       <div className="space-y-2">
                         {assignment.moduleId.files.slice(0, 3).map((file: any, index: number) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                            <div className="flex items-center min-w-0 flex-1">
-                              <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
-                              <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                                {file?.originalName || `File ${index + 1}`}
-                              </span>
-                            </div>
-                            <button 
-                              onClick={() => handleDownloadFile(assignment.moduleId?._id || '', file?.originalName || '')}
-                              className="ml-2 p-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
+                          <div key={index} className="flex items-center p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                            <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+                            <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                              {file?.originalName || `File ${index + 1}`}
+                            </span>
                           </div>
                         ))}
                         {assignment.moduleId.files.length > 3 && (

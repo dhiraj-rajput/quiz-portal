@@ -48,7 +48,11 @@ const DocumentViewer: React.FC = () => {
     // Only load module details if authentication is complete and user is authenticated
     if (!authLoading && user && moduleId) {
       console.log('DocumentViewer - conditions met, loading module details');
-      loadModuleDetails();
+      // Add a small delay to ensure auth context is fully initialized
+      const timeoutId = setTimeout(() => {
+        loadModuleDetails();
+      }, 100);
+      return () => clearTimeout(timeoutId);
     } else if (!authLoading && !user) {
       console.log('DocumentViewer - no user after auth complete');
       setError('Authentication required. Please log in again.');
@@ -63,10 +67,17 @@ const DocumentViewer: React.FC = () => {
   const loadModuleDetails = async () => {
     try {
       setLoading(true);
+      setError('');
+      console.log('DocumentViewer: Starting API call for assigned modules');
+      
       // Get assigned modules and find the specific one
       const response = await studentAPI.getAssignedModules(1, 100);
+      console.log('DocumentViewer: API response:', response);
+      
       if (response.success && response.data) {
         const assignment = response.data.modules?.find((a: any) => a.moduleId?._id === moduleId);
+        console.log('DocumentViewer: Found assignment:', assignment);
+        
         if (assignment && assignment.moduleId) {
           setModule(assignment.moduleId);
           // Auto-select first file if available
@@ -74,36 +85,95 @@ const DocumentViewer: React.FC = () => {
             setSelectedFile(assignment.moduleId.files[0]);
           }
         } else {
+          console.log('DocumentViewer: Module not found in assignments');
           setError('Module not found or not assigned to you');
         }
       } else {
-        setError('Failed to load module details');
+        console.log('DocumentViewer: API call failed or no data returned');
+        setError(`Failed to load module details: ${response.message || 'Unknown error'}`);
       }
-    } catch (err) {
-      console.error('Error loading module:', err);
-      setError('Failed to load module details');
+    } catch (err: any) {
+      console.error('DocumentViewer: Error loading module:', err);
+      
+      // Check if it's an authentication error
+      if (err.status === 401 || err.message?.includes('Authentication')) {
+        setError('Session expired. Please log in again.');
+        // Optionally redirect to login
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(`Failed to load module details: ${err.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const getFileIcon = (mimeType: string) => {
+  const getFileIcon = (file: any) => {
+    // Try to get mimeType or fileType, with fallbacks
+    const mimeType = file?.mimeType || file?.fileType || '';
+    const fileName = file?.originalName || file?.fileName || '';
+    
+    if (!mimeType && fileName) {
+      // Fallback: determine type from file extension
+      const extension = fileName.toLowerCase().split('.').pop();
+      switch (extension) {
+        case 'pdf':
+          return <FileText className="h-5 w-5" />;
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif':
+        case 'webp':
+          return <Image className="h-5 w-5" />;
+        case 'mp4':
+        case 'avi':
+        case 'mov':
+        case 'wmv':
+          return <Video className="h-5 w-5" />;
+        case 'doc':
+        case 'docx':
+          return <FileText className="h-5 w-5" />;
+        case 'ppt':
+        case 'pptx':
+          return <FileImage className="h-5 w-5" />;
+        default:
+          return <File className="h-5 w-5" />;
+      }
+    }
+    
+    if (!mimeType) return <File className="h-5 w-5" />;
     if (mimeType.startsWith('image/')) return <Image className="h-5 w-5" />;
     if (mimeType.startsWith('video/')) return <Video className="h-5 w-5" />;
     if (mimeType.includes('pdf')) return <FileText className="h-5 w-5" />;
-    if (mimeType.includes('document') || mimeType.includes('word')) return <FileText className="h-5 w-5" />;
+    if (mimeType.includes('document') || mimeType.includes('word') || mimeType.includes('msword')) return <FileText className="h-5 w-5" />;
     if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return <FileImage className="h-5 w-5" />;
+    if (mimeType.includes('sheet') || mimeType.includes('excel')) return <FileText className="h-5 w-5" />;
     return <File className="h-5 w-5" />;
   };
 
   const getFileUrl = (moduleId: string, fileName: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${baseUrl}/api/files/modules/${moduleId}/${encodeURIComponent(fileName)}`;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Remove /api if it's already in the baseUrl to avoid duplication
+    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+    
+    // Add token as query parameter for iframe access
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+    
+    return `${cleanBaseUrl}/files/modules/${moduleId}/${encodeURIComponent(fileName)}${tokenParam}`;
   };
 
   const getDownloadUrl = (moduleId: string, fileName: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${baseUrl}/api/files/modules/${moduleId}/${encodeURIComponent(fileName)}/download`;
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+    
+    // Add token as query parameter for direct download access
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+    
+    return `${cleanBaseUrl}/files/modules/${moduleId}/${encodeURIComponent(fileName)}/download${tokenParam}`;
   };
 
   const handleFileSelect = (file: ModuleFile) => {
@@ -114,60 +184,98 @@ const DocumentViewer: React.FC = () => {
     if (!module) return;
     
     const downloadUrl = getDownloadUrl(module._id, file.fileName);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = file.originalName;
-    link.target = '_blank';
     
-    // Add authorization if available
-    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-    if (token) {
-      fetch(downloadUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      .then(response => response.blob())
-      .then(blob => {
-        const url = window.URL.createObjectURL(blob);
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      })
-      .catch(error => {
-        console.error('Download failed:', error);
-        alert('Failed to download file');
-      });
-    } else {
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    // Open in new tab instead of forcing download
+    window.open(downloadUrl, '_blank');
   };
 
   const renderFileViewer = () => {
     if (!selectedFile || !module) return null;
 
     const fileUrl = getFileUrl(module._id, selectedFile.fileName);
+    
+    // Get file type with fallbacks (same logic as getFileIcon)
+    const mimeType = selectedFile.mimeType || (selectedFile as any).fileType || '';
+    const fileName = selectedFile.originalName || selectedFile.fileName || '';
+    
+    // Debug logging
+    console.log('DocumentViewer renderFileViewer:', {
+      selectedFile,
+      mimeType,
+      fileName,
+      fileUrl
+    });
+    
+    // Determine file type from extension if mimeType/fileType is not available
+    const getFileTypeFromExtension = (filename: string) => {
+      const extension = filename.toLowerCase().split('.').pop();
+      switch (extension) {
+        case 'pdf': return 'application/pdf';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif':
+        case 'webp': return 'image/*';
+        case 'mp4':
+        case 'avi':
+        case 'mov':
+        case 'wmv': return 'video/*';
+        case 'doc': return 'application/msword';
+        case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        case 'ppt': return 'application/vnd.ms-powerpoint';
+        case 'pptx': return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+        case 'xls': return 'application/vnd.ms-excel';
+        case 'xlsx': return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        case 'txt': return 'text/plain';
+        default: return 'application/octet-stream';
+      }
+    };
+    
+    const effectiveType = mimeType || getFileTypeFromExtension(fileName);
+    
+    console.log('DocumentViewer effective file type:', effectiveType);
+    console.log('DocumentViewer file URL:', fileUrl);
 
-    // For PDFs, we can use an iframe or embed
-    if (selectedFile.mimeType === 'application/pdf') {
+    // For PDFs
+    if (effectiveType === 'application/pdf' || effectiveType === 'pdf') {
       return (
         <div className="h-full w-full">
-          <iframe
-            src={`${fileUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-            className="w-full h-full border-0"
-            title={selectedFile.originalName}
-          />
+          <div className="h-full w-full flex flex-col">
+            {/* PDF Viewer with object tag (better browser support) */}
+            <div className="flex-1 relative">
+              <object
+                data={fileUrl}
+                type="application/pdf"
+                className="w-full h-full"
+                title={selectedFile.originalName}
+              >
+                {/* Fallback content if object tag fails */}
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800">
+                  <div className="text-center">
+                    <File className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      PDF Preview Not Available
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Your browser doesn't support inline PDF viewing.
+                    </p>
+                    <button
+                      onClick={() => window.open(fileUrl, '_blank')}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                    >
+                      Open PDF
+                    </button>
+                  </div>
+                </div>
+              </object>
+            </div>
+          </div>
         </div>
       );
     }
 
     // For images
-    if (selectedFile.mimeType.startsWith('image/')) {
+    if (effectiveType.startsWith('image/') || effectiveType === 'image/*') {
       return (
         <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-gray-800">
           <img
@@ -180,7 +288,7 @@ const DocumentViewer: React.FC = () => {
     }
 
     // For videos
-    if (selectedFile.mimeType.startsWith('video/')) {
+    if (effectiveType.startsWith('video/') || effectiveType === 'video/*') {
       return (
         <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-gray-800">
           <video
@@ -196,12 +304,20 @@ const DocumentViewer: React.FC = () => {
 
     // For Office documents, use Google Docs Viewer
     if (
-      selectedFile.mimeType.includes('document') ||
-      selectedFile.mimeType.includes('word') ||
-      selectedFile.mimeType.includes('presentation') ||
-      selectedFile.mimeType.includes('powerpoint') ||
-      selectedFile.mimeType.includes('sheet') ||
-      selectedFile.mimeType.includes('excel')
+      effectiveType.includes('document') ||
+      effectiveType.includes('word') ||
+      effectiveType.includes('presentation') ||
+      effectiveType.includes('powerpoint') ||
+      effectiveType.includes('sheet') ||
+      effectiveType.includes('excel') ||
+      effectiveType === 'application/msword' ||
+      effectiveType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      effectiveType === 'application/vnd.ms-powerpoint' ||
+      effectiveType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+      effectiveType === 'application/vnd.ms-excel' ||
+      effectiveType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      effectiveType === 'application/document' ||
+      effectiveType === 'application/presentation'
     ) {
       const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
       return (
@@ -210,13 +326,22 @@ const DocumentViewer: React.FC = () => {
             src={googleViewerUrl}
             className="w-full h-full border-0"
             title={selectedFile.originalName}
+            onError={() => {
+              console.error('Google Docs Viewer failed to load Office document');
+            }}
           />
+          {/* Fallback message for Office documents */}
+          <div className="absolute bottom-4 right-4">
+            <div className="bg-blue-600 text-white px-3 py-1 rounded text-xs">
+              Office Document
+            </div>
+          </div>
         </div>
       );
     }
 
     // For text files
-    if (selectedFile.mimeType.startsWith('text/')) {
+    if (effectiveType.startsWith('text/')) {
       return (
         <div className="h-full w-full p-4 bg-white dark:bg-gray-800 overflow-auto">
           <iframe
@@ -277,12 +402,24 @@ const DocumentViewer: React.FC = () => {
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Error</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={() => navigate('/student/modules')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Back to Modules
-          </button>
+          <div className="space-x-3">
+            <button
+              onClick={() => {
+                setError('');
+                setLoading(true);
+                loadModuleDetails();
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              Retry
+            </button>
+            <button
+              onClick={() => navigate('/student/modules')}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+              Back to Modules
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -344,38 +481,36 @@ const DocumentViewer: React.FC = () => {
 
       <div className="flex h-[calc(100vh-80px)]">
         {/* Sidebar - File List */}
-        <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-          <div className="p-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Module Files
+        <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+          <div className="p-3">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
+              Files
             </h2>
             
             {module.description && (
-              <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-300">
-                  {module.description}
-                </p>
+              <div className="mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-800 dark:text-blue-300">
+                {module.description}
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               {module.files && module.files.length > 0 ? (
                 module.files.map((file) => (
                   <button
                     key={file._id}
                     onClick={() => handleFileSelect(file)}
-                    className={`w-full p-3 rounded-lg border text-left transition ${
+                    className={`w-full p-2 rounded border text-left transition ${
                       selectedFile?._id === file._id
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
                     }`}
                   >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 pt-1">
-                        {getFileIcon(file.mimeType)}
+                    <div className="flex items-start space-x-2">
+                      <div className="flex-shrink-0 pt-0.5">
+                        {getFileIcon(file)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        <p className="text-xs font-medium text-gray-900 dark:text-white truncate">
                           {file.originalName}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">

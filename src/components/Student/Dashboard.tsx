@@ -83,6 +83,18 @@ const StudentDashboard: React.FC = () => {
     ? Math.min(Math.round((stats.completedTests / stats.assignedTests) * 100), 100)
     : 0;
 
+  // Debug logging
+  console.log('Dashboard Stats:', {
+    assignedModules: stats.assignedModules,
+    completedModules,
+    moduleCompletionPercentage,
+    assignedTests: stats.assignedTests,
+    completedTests: stats.completedTests,
+    testCompletionPercentage,
+    upcomingDeadlinesCount: upcomingDeadlines.length,
+    rawDashboardData: dashboardData
+  });
+
   const averageScore = dashboardData?.recentActivity?.recentTestResults?.length > 0 
     ? Math.round(dashboardData.recentActivity.recentTestResults.reduce((sum: number, result: any) => sum + result.percentage, 0) / dashboardData.recentActivity.recentTestResults.length)
     : 0;
@@ -318,11 +330,20 @@ const StudentDashboard: React.FC = () => {
                 <div className="progress-section">
                   <div className="flex justify-between progress-text">
                     <span>Module Completion</span>
-                    <span>{completedModules}/{stats.assignedModules}</span>
+                    <span>
+                      {completedModules}/{stats.assignedModules} ({moduleCompletionPercentage}%)
+                      {stats.assignedModules > 0 && completedModules === stats.assignedModules && (
+                        <span className="text-green-600 ml-2">✓ All Complete</span>
+                      )}
+                    </span>
                   </div>
                   <div className="mt-1 progress-container">
                     <div 
-                      className="progress-bar progress-bar-blue" 
+                      className={`progress-bar ${
+                        stats.assignedModules > 0 && completedModules === stats.assignedModules 
+                          ? 'progress-bar-green' 
+                          : 'progress-bar-blue'
+                      }`}
                       style={{ 
                         width: `${Math.min(moduleCompletionPercentage, 100)}%`
                       }}
@@ -334,11 +355,20 @@ const StudentDashboard: React.FC = () => {
                 <div className="progress-section">
                   <div className="flex justify-between progress-text">
                     <span>Test Completion</span>
-                    <span>{stats.completedTests}/{stats.assignedTests}</span>
+                    <span>
+                      {stats.completedTests}/{stats.assignedTests} ({testCompletionPercentage}%)
+                      {stats.assignedTests > 0 && stats.completedTests === stats.assignedTests && (
+                        <span className="text-green-600 ml-2">✓ All Complete</span>
+                      )}
+                    </span>
                   </div>
                   <div className="mt-1 progress-container">
                     <div 
-                      className="progress-bar progress-bar-purple" 
+                      className={`progress-bar ${
+                        stats.assignedTests > 0 && stats.completedTests === stats.assignedTests 
+                          ? 'progress-bar-green' 
+                          : 'progress-bar-purple'
+                      }`}
                       style={{ 
                         width: `${Math.min(testCompletionPercentage, 100)}%`
                       }}

@@ -29,11 +29,14 @@ export interface Module {
 }
 
 export interface ModuleFile {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  url: string;
+  _id: string;
+  fileName: string;
+  originalName: string;
+  filePath: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+  mimeType?: string; // Optional for backward compatibility
 }
 
 export interface Question {

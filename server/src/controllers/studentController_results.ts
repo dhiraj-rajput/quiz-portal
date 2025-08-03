@@ -1,3 +1,7 @@
+import { Response, NextFunction } from 'express';
+import TestResult from '../models/TestResult';
+import { AuthenticatedRequest } from '../middleware/auth';
+
 // @desc    Get test results for student
 // @route   GET /api/student/results
 // @access  Private (Student only)

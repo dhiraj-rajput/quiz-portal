@@ -68,18 +68,22 @@ export const initializeMockData = () => {
       description: 'Learn the basics of React including components, props, and state management.',
       files: [
         {
-          id: '1',
-          name: 'React Basics.pdf',
-          type: 'application/pdf',
-          size: 2048000,
-          url: '#'
+          _id: '1',
+          fileName: 'react-basics.pdf',
+          originalName: 'React Basics.pdf',
+          filePath: '/uploads/modules/react-basics.pdf',
+          fileType: 'pdf',
+          fileSize: 2048000,
+          uploadedAt: '2024-01-10T00:00:00Z'
         },
         {
-          id: '2',
-          name: 'React Tutorial Video.mp4',
-          type: 'video/mp4',
-          size: 15728640,
-          url: '#'
+          _id: '2',
+          fileName: 'react-tutorial-video.mp4',
+          originalName: 'React Tutorial Video.mp4',
+          filePath: '/uploads/modules/react-tutorial-video.mp4',
+          fileType: 'mp4',
+          fileSize: 15728640,
+          uploadedAt: '2024-01-10T00:00:00Z'
         }
       ],
       createdBy: '1',
@@ -91,11 +95,13 @@ export const initializeMockData = () => {
       description: 'Master JavaScript concepts including ES6 features, async/await, and more.',
       files: [
         {
-          id: '3',
-          name: 'JS Fundamentals.pdf',
-          type: 'application/pdf',
-          size: 1536000,
-          url: '#'
+          _id: '3',
+          fileName: 'js-fundamentals.pdf',
+          originalName: 'JS Fundamentals.pdf',
+          filePath: '/uploads/modules/js-fundamentals.pdf',
+          fileType: 'pdf',
+          fileSize: 1536000,
+          uploadedAt: '2024-01-08T00:00:00Z'
         }
       ],
       createdBy: '1',
