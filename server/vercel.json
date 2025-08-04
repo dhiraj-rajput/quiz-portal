@@ -1,22 +1,15 @@
 {
   "version": 2,
-  "name": "quiz-portal-api",
   "builds": [
     {
-      "src": "src/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["src/**"]
-      }
+      "src": "./api/index.ts",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/src/index.ts"
+      "dest": "./api/index.ts"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
