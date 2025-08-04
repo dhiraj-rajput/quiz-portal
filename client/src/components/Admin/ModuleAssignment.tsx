@@ -22,12 +22,9 @@ const ModuleAssignment: React.FC = () => {
   const { showSuccess, showError, showWarning } = useNotifications();
   const [modules, setModules] = useState<Module[]>([]);
   const [students, setStudents] = useState<User[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showAssignmentsModal, setShowAssignmentsModal] = useState(false);
   const [selectedModule, setSelectedModule] = useState('');
-  const [selectedModuleAssignments, setSelectedModuleAssignments] = useState<any[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,10 +36,9 @@ const ModuleAssignment: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [modulesResponse, studentsResponse, assignmentsResponse] = await Promise.all([
+      const [modulesResponse, studentsResponse] = await Promise.all([
         moduleAPI.getModules(1, 100),
-        adminAPI.getUsers(1, 100, '', 'student'),
-        moduleAPI.getModuleAssignments(1, 100)
+        adminAPI.getUsers(1, 100, '', 'student')
       ]);
 
       if (modulesResponse.success && modulesResponse.data) {
@@ -53,9 +49,8 @@ const ModuleAssignment: React.FC = () => {
         setStudents(studentsResponse.data.users || []);
       }
 
-      if (assignmentsResponse.success && assignmentsResponse.data) {
-        setAssignments(assignmentsResponse.data.assignments || []);
-      }
+      // Load assignments - this would need to be implemented in the API
+      // setAssignments([]);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -65,15 +60,21 @@ const ModuleAssignment: React.FC = () => {
 
   const loadModuleAssignment = async (moduleId: string) => {
     try {
+      console.log('Loading module assignment for moduleId:', moduleId);
       const response = await moduleAPI.getModuleAssignment(moduleId);
+      console.log('Module assignment response:', response);
+      
       if (response.success && response.data && response.data.assignment) {
+        console.log('Assignment found:', response.data.assignment);
         // Pre-select students who are already assigned
         const assignedStudentIds = response.data.assignment.assignedTo?.map((student: User) => student._id) || [];
+        console.log('Assigned student IDs:', assignedStudentIds);
         setSelectedStudents(assignedStudentIds);
         if (response.data.assignment.dueDate) {
           setDueDate(new Date(response.data.assignment.dueDate).toISOString().split('T')[0]);
         }
       } else {
+        console.log('No assignment found for this module');
         // No assignment found for this module
         setSelectedStudents([]);
         setDueDate('');
@@ -85,25 +86,6 @@ const ModuleAssignment: React.FC = () => {
     }
   };
 
-  const handleViewAssignments = async (moduleId: string) => {
-    try {
-      const response = await moduleAPI.getModuleAssignment(moduleId);
-      if (response.success && response.data && response.data.assignment) {
-        setSelectedModuleAssignments([response.data.assignment]);
-        setSelectedModule(moduleId);
-        setShowAssignmentsModal(true);
-      } else {
-        // No assignments found for this module
-        setSelectedModuleAssignments([]);
-        setSelectedModule(moduleId);
-        setShowAssignmentsModal(true);
-      }
-    } catch (error) {
-      console.error('Error loading module assignments:', error);
-      showError('Failed to load module assignments');
-    }
-  };
-
   const handleAssignModule = async () => {
     if (!selectedModule || selectedStudents.length === 0) {
       showWarning('Please select a module and at least one student');
@@ -111,11 +93,13 @@ const ModuleAssignment: React.FC = () => {
     }
 
     try {
+      console.log('Assigning module:', selectedModule, 'to students:', selectedStudents);
       const response = await moduleAPI.assignModule(
         selectedModule,
         selectedStudents,
         dueDate || undefined
       );
+      console.log('Assignment response:', response);
 
       if (response.success) {
         showSuccess('Module assigned successfully!');
@@ -187,24 +171,16 @@ const ModuleAssignment: React.FC = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
                           Created: {new Date(module.createdAt).toLocaleDateString()}
                         </p>
-                        <div className="space-y-2">
-                          <button
-                            onClick={() => {
-                              setSelectedModule(module._id);
-                              loadModuleAssignment(module._id);
-                              setShowAssignModal(true);
-                            }}
-                            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                          >
-                            Assign to Students
-                          </button>
-                          <button
-                            onClick={() => handleViewAssignments(module._id)}
-                            className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                          >
-                            View Assignments
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedModule(module._id);
+                            loadModuleAssignment(module._id);
+                            setShowAssignModal(true);
+                          }}
+                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        >
+                          Assign to Students
+                        </button>
                       </div>
                     </div>
                   </div>
