@@ -81,16 +81,53 @@ const TestInterface: React.FC = () => {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            handleSubmitTest();
+            // Time's up - auto-submit the test
+            clearInterval(timer);
+            
+            // Show notification if permission was granted
+            if (Notification.permission === 'granted') {
+              new Notification('Time\'s Up!', {
+                body: 'Your test time has expired. Submitting automatically.',
+                icon: '/favicon.ico'
+              });
+            }
+            
+            // Auto-submit with a slight delay to ensure state is updated
+            setTimeout(() => {
+              if (submitTestRef.current) {
+                submitTestRef.current();
+              }
+            }, 500);
+            
             return 0;
           }
+          
+          // Show time warnings
+          if (prev === 301) { // 5 minutes remaining
+            showWarning('⏰ 5 minutes remaining!');
+            if (Notification.permission === 'granted') {
+              new Notification('5 Minutes Remaining', {
+                body: 'You have 5 minutes left to complete your test.',
+                icon: '/favicon.ico'
+              });
+            }
+          } else if (prev === 61) { // 1 minute remaining
+            showWarning('⏰ 1 minute remaining!');
+            if (Notification.permission === 'granted') {
+              new Notification('1 Minute Remaining', {
+                body: 'Only 1 minute left! Please finish your test.',
+                icon: '/favicon.ico'
+              });
+            }
+          }
+          
           return prev - 1;
         });
       }, 1000);
 
       return () => clearInterval(timer);
     }
-  }, [currentStep, timeRemaining]);
+  }, [currentStep, timeRemaining, showWarning]);
 
   // Prevent context menu and browser dev tools during test
   useEffect(() => {
@@ -154,32 +191,67 @@ const TestInterface: React.FC = () => {
             
             if (newCount >= 3) {
               // Auto-submit test after 3 exits
-              showError('Test submitted automatically due to multiple fullscreen exits.');
+              showError('Test will be submitted automatically due to multiple fullscreen exits.');
+              
+              // Create a notification if permission was granted
+              if (Notification.permission === 'granted') {
+                new Notification('Test Auto-Submit', {
+                  body: 'Your test is being submitted due to multiple fullscreen exits.',
+                  icon: '/favicon.ico'
+                });
+              }
+              
               // Release wake lock before submission
               if (wakeLock) {
                 wakeLock.release();
                 setWakeLock(null);
               }
-              submitTestRef.current?.();
+              
+              // Auto-submit after 3 seconds to give user time to see the warning
+              setTimeout(() => {
+                if (submitTestRef.current) {
+                  submitTestRef.current();
+                }
+              }, 3000);
+              
               return newCount;
             } else {
               // Show warning and attempt to re-enter fullscreen
               setShowFullscreenWarning(true);
               showWarning(`Warning: You exited fullscreen mode. ${3 - newCount} exits remaining before auto-submission.`);
               
+              // Create a notification if permission was granted
+              if (Notification.permission === 'granted') {
+                new Notification('Fullscreen Exit Warning', {
+                  body: `${3 - newCount} exits remaining before auto-submission.`,
+                  icon: '/favicon.ico'
+                });
+              }
+              
               // Try to re-enter fullscreen after a short delay
               setTimeout(() => {
-                if (document.documentElement.requestFullscreen) {
-                  document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
-                    console.log('Failed to re-enter fullscreen');
-                  });
-                }
-              }, 1000);
+                const enterFullscreen = async () => {
+                  try {
+                    if (document.documentElement.requestFullscreen) {
+                      await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+                    } else if ((document.documentElement as any).webkitRequestFullscreen) {
+                      await (document.documentElement as any).webkitRequestFullscreen();
+                    } else if ((document.documentElement as any).msRequestFullscreen) {
+                      await (document.documentElement as any).msRequestFullscreen();
+                    }
+                  } catch (error) {
+                    console.log('Failed to re-enter fullscreen:', error);
+                    // If we can't re-enter fullscreen, show a more persistent warning
+                    showWarning('Unable to re-enter fullscreen. Please use F11 or your browser\'s fullscreen option.');
+                  }
+                };
+                enterFullscreen();
+              }, 1500);
               
-              // Hide warning after 8 seconds
+              // Hide warning after 10 seconds
               setTimeout(() => {
                 setShowFullscreenWarning(false);
-              }, 8000);
+              }, 10000);
               
               return newCount;
             }
@@ -295,14 +367,34 @@ const TestInterface: React.FC = () => {
         }
       }
       
-      // Request notification permission for test alerts
-      if ('Notification' in window && Notification.permission === 'default') {
-        try {
-          const permission = await Notification.requestPermission();
-          console.log('Notification permission:', permission);
-        } catch (e) {
-          console.log('Notification permission not available');
+      // Request notification permission for test alerts - make it more explicit
+      if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+          try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              console.log('Notification permission granted');
+              // Test notification to confirm it works
+              new Notification('Test Notifications Enabled', {
+                body: 'You will receive alerts for important test events.',
+                icon: '/favicon.ico'
+              });
+            } else {
+              console.log('Notification permission denied');
+              showWarning('Notifications were denied. You won\'t receive fullscreen exit alerts.');
+            }
+          } catch (e) {
+            console.log('Notification permission request failed:', e);
+          }
+        } else if (Notification.permission === 'granted') {
+          // Test notification to confirm it works
+          new Notification('Test Notifications Ready', {
+            body: 'Notifications are already enabled for this test.',
+            icon: '/favicon.ico'
+          });
         }
+      } else {
+        console.log('Notifications not supported in this browser');
       }
 
       // Request wake lock to keep screen awake
@@ -341,20 +433,31 @@ const TestInterface: React.FC = () => {
   const handleEnterFullscreen = async () => {
     try {
       // Check if fullscreen is supported
-      if (!document.documentElement.requestFullscreen && 
-          !(document.documentElement as any).webkitRequestFullscreen && 
-          !(document.documentElement as any).msRequestFullscreen) {
+      const isFullscreenSupported = document.documentElement.requestFullscreen || 
+                                   (document.documentElement as any).webkitRequestFullscreen || 
+                                   (document.documentElement as any).msRequestFullscreen;
+
+      if (!isFullscreenSupported) {
         showWarning('Fullscreen mode is not supported in this browser. The test will continue in normal mode.');
         setCurrentStep('test');
         return;
       }
 
+      // Check if we're already in fullscreen
+      if (document.fullscreenElement || 
+          (document as any).webkitFullscreenElement || 
+          (document as any).msFullscreenElement) {
+        setCurrentStep('test');
+        return;
+      }
+
       // Request fullscreen with proper error handling
-      let fullscreenPromise;
+      let fullscreenPromise: Promise<void> | undefined;
+      
       if (document.documentElement.requestFullscreen) {
         fullscreenPromise = document.documentElement.requestFullscreen({ navigationUI: 'hide' });
       } else if ((document.documentElement as any).webkitRequestFullscreen) {
-        fullscreenPromise = (document.documentElement as any).webkitRequestFullscreen((Element as any).ALLOW_KEYBOARD_INPUT);
+        fullscreenPromise = (document.documentElement as any).webkitRequestFullscreen();
       } else if ((document.documentElement as any).msRequestFullscreen) {
         fullscreenPromise = (document.documentElement as any).msRequestFullscreen();
       }
@@ -362,31 +465,20 @@ const TestInterface: React.FC = () => {
       if (fullscreenPromise) {
         await fullscreenPromise;
         
-        // Add fullscreen change listener immediately after entering fullscreen
-        const handleFullscreenExit = () => {
-          if (!document.fullscreenElement && 
-              !(document as any).webkitFullscreenElement && 
-              !(document as any).msFullscreenElement) {
-            
-            // Attempt to re-enter fullscreen immediately
-            setTimeout(() => {
-              if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
-              }
-            }, 100);
-          }
-        };
-
-        document.addEventListener('fullscreenchange', handleFullscreenExit);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenExit);
-        document.addEventListener('msfullscreenchange', handleFullscreenExit);
-        
         // Wait a moment to ensure fullscreen is active
         setTimeout(() => {
-          if (document.fullscreenElement || 
-              (document as any).webkitFullscreenElement || 
-              (document as any).msFullscreenElement) {
+          const isInFullscreen = document.fullscreenElement || 
+                               (document as any).webkitFullscreenElement || 
+                               (document as any).msFullscreenElement;
+          
+          if (isInFullscreen) {
             setCurrentStep('test');
+            if (Notification.permission === 'granted') {
+              new Notification('Test Started', {
+                body: 'Your test has begun. Stay in fullscreen mode.',
+                icon: '/favicon.ico'
+              });
+            }
           } else {
             // Fullscreen didn't work, continue anyway
             showWarning('Fullscreen mode could not be activated. The test will continue in normal mode for the best experience.');
@@ -396,12 +488,12 @@ const TestInterface: React.FC = () => {
       } else {
         throw new Error('Fullscreen not supported');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to enter fullscreen:', err);
       
       // Check if user denied the request
-      if (err instanceof Error && err.name === 'NotAllowedError') {
-        showWarning('Fullscreen permission was denied. Please allow fullscreen mode and try again, or continue in normal mode.');
+      if (err.name === 'NotAllowedError') {
+        showWarning('Fullscreen permission was denied. Please allow fullscreen mode for the best test experience, or continue in normal mode.');
       } else {
         showWarning('Fullscreen mode is not available. The test will continue in normal mode.');
       }
@@ -436,11 +528,16 @@ const TestInterface: React.FC = () => {
   const handleSubmitTest = useCallback(async () => {
     if (submitting) return;
 
-    const confirmSubmit = window.confirm(
-      'Are you sure you want to submit your test? You cannot change your answers after submission.'
-    );
+    // For auto-submit scenarios (time up, fullscreen exits), skip confirmation
+    const isAutoSubmit = timeRemaining <= 0 || fullscreenExitCount >= 3;
+    
+    if (!isAutoSubmit) {
+      const confirmSubmit = window.confirm(
+        'Are you sure you want to submit your test? You cannot change your answers after submission.'
+      );
 
-    if (!confirmSubmit) return;
+      if (!confirmSubmit) return;
+    }
 
     try {
       setSubmitting(true);
@@ -468,7 +565,10 @@ const TestInterface: React.FC = () => {
       const submitData = {
         answers: formattedAnswers,
         timeSpent: Math.round(((testData?.timeLimit || 60) * 60 - timeRemaining) / 60), // in minutes
-        startedAt: startTime.toISOString()
+        startedAt: startTime.toISOString(),
+        submissionReason: isAutoSubmit ? 
+          (timeRemaining <= 0 ? 'time_expired' : 'fullscreen_violations') : 
+          'manual_submit'
       };
       
       // Use the testAPI to submit the test
@@ -479,13 +579,29 @@ const TestInterface: React.FC = () => {
         
         // Clean up resources
         if (wakeLock) {
-          wakeLock.release();
-          setWakeLock(null);
+          try {
+            wakeLock.release();
+            setWakeLock(null);
+          } catch (e) {
+            console.log('Failed to release wake lock:', e);
+          }
         }
         
         // Exit fullscreen
         if (document.fullscreenElement) {
-          document.exitFullscreen();
+          try {
+            await document.exitFullscreen();
+          } catch (e) {
+            console.log('Failed to exit fullscreen:', e);
+          }
+        }
+
+        // Show success notification
+        if (Notification.permission === 'granted') {
+          new Notification('Test Submitted Successfully', {
+            body: 'Your test has been submitted. Results will be available shortly.',
+            icon: '/favicon.ico'
+          });
         }
 
         // Redirect to results after a short delay
@@ -503,12 +619,21 @@ const TestInterface: React.FC = () => {
         throw new Error(errorMessage);
       }
     } catch (err: any) {
-      setError(`Failed to submit test: ${err.message || 'Unknown error'}`);
-      showError(`Failed to submit test: ${err.message || 'Unknown error'}. Please try again.`);
+      const errorMessage = `Failed to submit test: ${err.message || 'Unknown error'}`;
+      setError(errorMessage);
+      showError(`${errorMessage}. Please try again.`);
+      
+      // Show error notification
+      if (Notification.permission === 'granted') {
+        new Notification('Test Submission Failed', {
+          body: 'There was an error submitting your test. Please try again.',
+          icon: '/favicon.ico'
+        });
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, testData, answers, timeRemaining, testId, navigate]);
+  }, [submitting, testData, answers, timeRemaining, testId, navigate, fullscreenExitCount, wakeLock, showError]);
 
   // Set the ref so it can be called from useEffect
   submitTestRef.current = handleSubmitTest;
@@ -744,7 +869,7 @@ const TestInterface: React.FC = () => {
               </div>
 
               {/* Features Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-4">
                     <span className="text-xl">🔒</span>
@@ -761,7 +886,21 @@ const TestInterface: React.FC = () => {
 
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-xl">📋</span>
+                    <span className="text-xl">�</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Notification Features:</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    <li>• Fullscreen exit warnings</li>
+                    <li>• Time remaining alerts (5 min, 1 min)</li>
+                    <li>• Auto-submission notifications</li>
+                    <li>• Test start/completion alerts</li>
+                    <li>• Security violation warnings</li>
+                  </ul>
+                </div>
+
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6">
+                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-xl">🛡️</span>
                   </div>
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Security Features:</h3>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
@@ -773,6 +912,8 @@ const TestInterface: React.FC = () => {
                   </ul>
                 </div>
               </div>
+
+              {/* Remove duplicate security features */}
 
               {/* Privacy Notice */}
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-8">
