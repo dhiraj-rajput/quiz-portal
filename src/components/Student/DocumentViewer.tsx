@@ -13,6 +13,7 @@ import {
   FileImage
 } from 'lucide-react';
 import { studentAPI } from '../../utils/api';
+import { API_BASE_URL } from '../../utils/config';
 
 interface ModuleFile {
   _id: string;
@@ -141,9 +142,8 @@ const DocumentViewer: React.FC = () => {
   };
 
   const getFileUrl = (moduleId: string, fileName: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     // Remove /api if it's already in the baseUrl to avoid duplication
-    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+    const cleanBaseUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
     
     // Add token as query parameter for iframe access
     const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
@@ -153,8 +153,7 @@ const DocumentViewer: React.FC = () => {
   };
 
   const getDownloadUrl = (moduleId: string, fileName: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const cleanBaseUrl = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+    const cleanBaseUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
     
     // Add token as query parameter for direct download access
     const token = localStorage.getItem('accessToken') || localStorage.getItem('token');

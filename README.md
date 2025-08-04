@@ -2,14 +2,21 @@
 
 A comprehensive quiz management system built with MongoDB, Express.js, React, Node.js, and TypeScript.
 
+## 🌐 Live Demo
+
+- **Frontend**: [https://your-frontend-deployment.vercel.app](https://your-frontend-deployment.vercel.app)
+- **API**: [https://your-api-deployment.vercel.app](https://your-api-deployment.vercel.app)
+
 ## 🚀 Features
 
-### Phase 1-5 (Completed)
+### Phase 1-6 (Completed)
 - ✅ **Backend Foundation**: Express.js server with TypeScript, middleware, error handling
 - ✅ **Database & Schema**: MongoDB with Mongoose, 7 collections, relationships
 - ✅ **API Development**: 30+ RESTful endpoints with validation, pagination, search
 - ✅ **File Management**: Upload system supporting multiple file types (PDF, DOC, PPT, etc.)
 - ✅ **Frontend Integration**: React with real API calls, JWT authentication, loading states
+- ✅ **Environment Variables**: Full environment configuration for deployment
+- ✅ **Vercel Deployment**: Production-ready deployment configuration
 
 ### Phase 6 (In Progress)
 - 🔄 **Real-time Features**: WebSocket integration for live test timers
@@ -190,6 +197,34 @@ EMAIL_PASS=your-app-password
 VITE_API_URL=http://localhost:5000/api
 VITE_SOCKET_URL=http://localhost:5000
 ```
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+This project is configured for easy deployment to Vercel:
+
+1. **Deploy Backend**:
+   ```bash
+   cd server
+   npx vercel --prod
+   ```
+
+2. **Deploy Frontend**:
+   ```bash
+   npx vercel --prod
+   ```
+
+3. **Set Environment Variables** in Vercel Dashboard
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### Production Requirements
+
+- **MongoDB Atlas**: Cloud database for production
+- **Email Service**: Gmail or SMTP provider
+- **Environment Variables**: All secrets configured in Vercel
+- **Domain Names**: Optional custom domains
 
 ## 🤝 Contributing
 

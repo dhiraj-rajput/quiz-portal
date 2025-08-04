@@ -4,6 +4,7 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
+import { serverConfig } from '../utils/config';
 import Module from '../models/Module';
 import ModuleAssignment from '../models/ModuleAssignment';
 import User from '../models/User';
@@ -108,7 +109,7 @@ router.get('/modules/:moduleId/:fileName', async (req: AuthenticatedRequest, res
     res.setHeader('Cache-Control', 'public, max-age=3600');
     
     // CORS headers for file access
-    res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || 'http://localhost:5173');
+    res.setHeader('Access-Control-Allow-Origin', serverConfig.CORS_ORIGIN);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     
     // Content Security Policy for PDF viewing

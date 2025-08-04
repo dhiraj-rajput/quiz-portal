@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "lint": "eslint src/**/*.ts",
     "test": "jest",
-    "seed": "tsx src/utils/seedData.ts"
+    "seed": "tsx src/utils/seedData.ts",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@types/express-validator": "^2.20.33",

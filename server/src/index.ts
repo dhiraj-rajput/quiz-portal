@@ -11,6 +11,7 @@ import { connectDB } from './utils/database';
 import { createDatabaseIndexes, configureDatabaseOptimizations } from './utils/databaseOptimization';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
+import { getCorsOrigins, serverConfig } from './utils/config';
 import WebSocketService from './utils/websocket';
 import EmailService from './utils/emailService';
 import AnalyticsService from './utils/analyticsService';
@@ -32,7 +33,7 @@ import forgotPasswordRoutes from './routes/forgotPassword';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = serverConfig.PORT;
 const server = createServer(app);
 
 // Initialize services
@@ -62,7 +63,7 @@ app.use(helmet({
 
 // CORS
 app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:3000'],
+  origin: getCorsOrigins(),
   credentials: true,
   optionsSuccessStatus: 200,
 }));
@@ -139,11 +140,11 @@ async function startServer() {
 
     // Start listening
     server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-      console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+      console.log(`🚀 Server running on port ${PORT} in ${serverConfig.NODE_ENV} mode`);
+      console.log(`📊 Health check available at ${serverConfig.NODE_ENV === 'production' ? 'https://your-domain.com' : `http://localhost:${PORT}`}/health`);
       console.log(`🔌 WebSocket server initialized`);
-      console.log(`✅ MongoDB Connected: ${process.env.MONGODB_URI?.includes('localhost') ? 'localhost' : 'remote'}`);
-      if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ MongoDB Connected: ${serverConfig.MONGODB_URI.includes('localhost') ? 'localhost' : 'remote'}`);
+      if (serverConfig.NODE_ENV === 'development') {
         console.log(`📖 API Documentation: http://localhost:${PORT}/api`);
       }
     });

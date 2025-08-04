@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { serverConfig } from './config';
 import { IUser } from '../models/User';
 
 interface EmailOptions {
@@ -228,7 +229,7 @@ class EmailService {
             <h2>Hi ${data.userName},</h2>
             <p>Great news! Your registration has been approved by ${data.adminName}.</p>
             <p>You can now log in to your account and start exploring the Quiz Portal dashboard.</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="button">Login to Dashboard</a>
+            <a href="${serverConfig.FRONTEND_URL}/login" class="button">Login to Dashboard</a>
             <p>Best regards,<br>Quiz Portal Team</p>
           </div>
           <div class="footer">

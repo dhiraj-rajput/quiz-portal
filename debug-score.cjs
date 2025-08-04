@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
+require('dotenv').config({ path: './server/.env' });
 
-const MONGODB_URI = 'mongodb://localhost:27017/quiz-portal';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-portal';
 
 async function checkTestAndResults() {
   try {

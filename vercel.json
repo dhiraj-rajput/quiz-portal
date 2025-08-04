@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "name": "quiz-portal",
   "builds": [
     {
       "src": "package.json",
@@ -11,11 +12,14 @@
   ],
   "routes": [
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
   "env": {
-    "VITE_API_URL": "@vite_api_url"
+    "VITE_NODE_ENV": "production"
   }
 }

@@ -1,8 +1,8 @@
-import { Server as SocketServer } from 'socket.io';
+import { Server as SocketServer, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
+import { getCorsOrigins } from './config';
 import User from '../models/User';
-import { Socket } from 'socket.io';
 
 interface SocketData {
   userId: string;
@@ -29,7 +29,7 @@ export class WebSocketService {
   constructor(server: HttpServer) {
     this.io = new SocketServer(server, {
       cors: {
-        origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5173', 'http://localhost:5174'],
+        origin: getCorsOrigins(),
         methods: ['GET', 'POST'],
         credentials: true,
       },
