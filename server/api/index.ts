@@ -6,26 +6,26 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 
-import { connectDB } from './utils/database';
-import { createDatabaseIndexes, configureDatabaseOptimizations } from './utils/databaseOptimization';
-import { errorHandler } from './middleware/errorHandler';
-import { notFound } from './middleware/notFound';
-import { getCorsOrigins, serverConfig } from './utils/config';
-import EmailService from './utils/emailService';
-import AnalyticsService from './utils/analyticsService';
+import { connectDB } from '../src/utils/database';
+import { createDatabaseIndexes, configureDatabaseOptimizations } from '../src/utils/databaseOptimization';
+import { errorHandler } from '../src/middleware/errorHandler';
+import { notFound } from '../src/middleware/notFound';
+import { getCorsOrigins, serverConfig } from '../src/utils/config';
+import EmailService from '../src/utils/emailService';
+import AnalyticsService from '../src/utils/analyticsService';
 
 // Route imports
-import authRoutes from './routes/auth';
-import adminRoutes from './routes/admin';
-import studentRoutes from './routes/student';
-import testRoutes from './routes/tests';
-import moduleRoutes from './routes/modules';
-import fileRoutes from './routes/files';
-import analyticsRoutes from './routes/analytics';
-import notificationRoutes from './routes/notifications';
-import otpRoutes from './routes/otp';
-import forgotPasswordRoutes from './routes/forgotPassword';
-import monitoringRoutes from './routes/monitoring';
+import authRoutes from '../src/routes/auth';
+import adminRoutes from '../src/routes/admin';
+import studentRoutes from '../src/routes/student';
+import testRoutes from '../src/routes/tests';
+import moduleRoutes from '../src/routes/modules';
+import fileRoutes from '../src/routes/files';
+import analyticsRoutes from '../src/routes/analytics';
+import notificationRoutes from '../src/routes/notifications';
+import otpRoutes from '../src/routes/otp';
+import forgotPasswordRoutes from '../src/routes/forgotPassword';
+import monitoringRoutes from '../src/routes/monitoring';
 
 // Load environment variables
 dotenv.config();
