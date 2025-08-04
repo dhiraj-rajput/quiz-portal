@@ -305,16 +305,59 @@ export const getModuleAssignment = async (req: AuthenticatedRequest, res: Respon
   try {
     const { id } = req.params;
 
-    // Find assignment for the specific module
-    const assignment = await ModuleAssignment.findOne({ moduleId: id })
+    // Find all assignments for the specific module and merge students
+    const assignments = await ModuleAssignment.find({ moduleId: id, isActive: true })
       .populate('moduleId', 'title description')
       .populate('assignedTo', 'firstName lastName email')
       .populate('assignedBy', 'firstName lastName');
 
+    if (assignments.length === 0) {
+      res.status(200).json({
+        success: true,
+        data: {
+          assignment: null,
+        },
+      });
+      return;
+    }
+
+    // Merge all assigned students from multiple assignments
+    const allAssignedStudents: any[] = [];
+    const studentIds = new Set();
+    let latestDueDate = null;
+    let latestAssignment = assignments[0];
+
+    assignments.forEach(assignment => {
+      assignment.assignedTo.forEach((student: any) => {
+        if (!studentIds.has(student._id.toString())) {
+          studentIds.add(student._id.toString());
+          allAssignedStudents.push(student);
+        }
+      });
+      
+      // Get the latest due date
+      if (assignment.dueDate && (!latestDueDate || assignment.dueDate > latestDueDate)) {
+        latestDueDate = assignment.dueDate;
+        latestAssignment = assignment;
+      }
+    });
+
+    // Return a consolidated assignment object
+    const consolidatedAssignment = {
+      _id: latestAssignment._id,
+      moduleId: latestAssignment.moduleId,
+      assignedTo: allAssignedStudents,
+      assignedBy: latestAssignment.assignedBy,
+      dueDate: latestDueDate,
+      isActive: true,
+      createdAt: latestAssignment.createdAt,
+      updatedAt: latestAssignment.updatedAt
+    };
+
     res.status(200).json({
       success: true,
       data: {
-        assignment,
+        assignment: consolidatedAssignment,
       },
     });
   } catch (error) {
@@ -353,19 +396,27 @@ export const assignModule = async (req: AuthenticatedRequest, res: Response, nex
     }
 
     // Create or update assignment
-    const existingAssignment = await ModuleAssignment.findOne({ moduleId: id });
+    // First, clean up any duplicate assignments for this module
+    const existingAssignments = await ModuleAssignment.find({ moduleId: id, isActive: true });
+    
+    if (existingAssignments.length > 1) {
+      // If there are multiple assignments, delete all but the most recent one
+      const sortedAssignments = existingAssignments.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      const assignmentsToDelete = sortedAssignments.slice(1);
+      await ModuleAssignment.deleteMany({
+        _id: { $in: assignmentsToDelete.map(a => a._id) }
+      });
+    }
+    
+    const existingAssignment = existingAssignments.length > 0 ? existingAssignments[0] : null;
     
     if (existingAssignment) {
-      // Add new students to existing assignment
-      const newStudentIds = studentIds.filter(
-        (studentId: string) => !existingAssignment.assignedTo.map(id => id.toString()).includes(studentId)
-      );
-      
-      if (newStudentIds.length > 0) {
-        existingAssignment.assignedTo.push(...newStudentIds);
-        if (dueDate) existingAssignment.dueDate = new Date(dueDate);
-        await existingAssignment.save();
-      }
+      // Replace the assigned students entirely (not append)
+      existingAssignment.assignedTo = studentIds;
+      if (dueDate) existingAssignment.dueDate = new Date(dueDate);
+      await existingAssignment.save();
     } else {
       // Create new assignment
       await ModuleAssignment.create({
