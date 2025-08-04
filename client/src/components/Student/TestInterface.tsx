@@ -59,6 +59,8 @@ const TestInterface: React.FC = () => {
 
   // Enhanced test environment
   const [focusMode, setFocusMode] = useState(false);
+  const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
+  const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
 
   // Load test data and assignment
   useEffect(() => {
@@ -93,6 +95,19 @@ const TestInterface: React.FC = () => {
   useEffect(() => {
     if (currentStep === 'test') {
       const preventRightClick = (e: MouseEvent) => e.preventDefault();
+      const preventCopyPaste = (e: KeyboardEvent) => {
+        // Prevent copy, paste, cut, select all
+        if (
+          (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a')) ||
+          (e.ctrlKey && e.shiftKey && e.key === 'c') ||
+          (e.ctrlKey && e.shiftKey && e.key === 'v')
+        ) {
+          e.preventDefault();
+          showWarning('Copy/paste is disabled during the test for security reasons.');
+          return;
+        }
+      };
+      
       const preventDevTools = (e: KeyboardEvent) => {
         // Prevent F12, Ctrl+Shift+I, Ctrl+U, etc.
         if (
@@ -106,12 +121,65 @@ const TestInterface: React.FC = () => {
         }
       };
 
+      const preventSelection = (e: Event) => {
+        e.preventDefault();
+      };
+
       document.addEventListener('contextmenu', preventRightClick);
+      document.addEventListener('keydown', preventCopyPaste);
       document.addEventListener('keydown', preventDevTools);
+      document.addEventListener('selectstart', preventSelection);
 
       return () => {
         document.removeEventListener('contextmenu', preventRightClick);
+        document.removeEventListener('keydown', preventCopyPaste);
         document.removeEventListener('keydown', preventDevTools);
+        document.removeEventListener('selectstart', preventSelection);
+      };
+    }
+  }, [currentStep]);
+
+  // Fullscreen exit detection and warning
+  useEffect(() => {
+    if (currentStep === 'test') {
+      const handleFullscreenChange = () => {
+        // Check if we exited fullscreen during the test
+        if (!document.fullscreenElement && 
+            !(document as any).webkitFullscreenElement && 
+            !(document as any).msFullscreenElement) {
+          
+          setFullscreenExitCount(prev => {
+            const newCount = prev + 1;
+            
+            if (newCount >= 3) {
+              // Auto-submit test after 3 exits
+              showError('Test submitted automatically due to multiple fullscreen exits.');
+              submitTestRef.current?.();
+              return newCount;
+            } else {
+              // Show warning
+              setShowFullscreenWarning(true);
+              showWarning(`Warning: You exited fullscreen mode. ${3 - newCount} exits remaining before auto-submission.`);
+              
+              // Hide warning after 5 seconds
+              setTimeout(() => {
+                setShowFullscreenWarning(false);
+              }, 5000);
+              
+              return newCount;
+            }
+          });
+        }
+      };
+
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+      return () => {
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('msfullscreenchange', handleFullscreenChange);
       };
     }
   }, [currentStep]);
@@ -191,6 +259,15 @@ const TestInterface: React.FC = () => {
           await navigator.storage.persist();
         } catch (e) {
           // Storage persistence not available
+        }
+      }
+      
+      // Request notification permission for test alerts
+      if ('Notification' in window && Notification.permission === 'default') {
+        try {
+          await Notification.requestPermission();
+        } catch (e) {
+          // Notification permission not available
         }
       }
       
@@ -775,6 +852,19 @@ const TestInterface: React.FC = () => {
 
     return (
       <div className="test-interface-container">
+        {/* Fullscreen Exit Warning */}
+        {showFullscreenWarning && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border-2 border-red-700">
+            <div className="flex items-center space-x-2">
+              <span className="text-xl">⚠️</span>
+              <div>
+                <p className="font-semibold">Fullscreen Exit Warning!</p>
+                <p className="text-sm">Stay in fullscreen mode to avoid auto-submission. {3 - fullscreenExitCount} exits remaining.</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Header with timer and progress */}
         <div className="test-header">
           <div className="test-header-content">

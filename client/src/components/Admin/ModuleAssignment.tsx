@@ -22,9 +22,12 @@ const ModuleAssignment: React.FC = () => {
   const { showSuccess, showError, showWarning } = useNotifications();
   const [modules, setModules] = useState<Module[]>([]);
   const [students, setStudents] = useState<User[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showAssignmentsModal, setShowAssignmentsModal] = useState(false);
   const [selectedModule, setSelectedModule] = useState('');
+  const [selectedModuleAssignments, setSelectedModuleAssignments] = useState<any[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,9 +39,10 @@ const ModuleAssignment: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [modulesResponse, studentsResponse] = await Promise.all([
+      const [modulesResponse, studentsResponse, assignmentsResponse] = await Promise.all([
         moduleAPI.getModules(1, 100),
-        adminAPI.getUsers(1, 100, '', 'student')
+        adminAPI.getUsers(1, 100, '', 'student'),
+        moduleAPI.getModuleAssignments(1, 100)
       ]);
 
       if (modulesResponse.success && modulesResponse.data) {
@@ -49,8 +53,9 @@ const ModuleAssignment: React.FC = () => {
         setStudents(studentsResponse.data.users || []);
       }
 
-      // Load assignments - this would need to be implemented in the API
-      // setAssignments([]);
+      if (assignmentsResponse.success && assignmentsResponse.data) {
+        setAssignments(assignmentsResponse.data.assignments || []);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -77,6 +82,25 @@ const ModuleAssignment: React.FC = () => {
       console.error('Error loading module assignment:', error);
       setSelectedStudents([]);
       setDueDate('');
+    }
+  };
+
+  const handleViewAssignments = async (moduleId: string) => {
+    try {
+      const response = await moduleAPI.getModuleAssignment(moduleId);
+      if (response.success && response.data && response.data.assignment) {
+        setSelectedModuleAssignments([response.data.assignment]);
+        setSelectedModule(moduleId);
+        setShowAssignmentsModal(true);
+      } else {
+        // No assignments found for this module
+        setSelectedModuleAssignments([]);
+        setSelectedModule(moduleId);
+        setShowAssignmentsModal(true);
+      }
+    } catch (error) {
+      console.error('Error loading module assignments:', error);
+      showError('Failed to load module assignments');
     }
   };
 
@@ -163,16 +187,24 @@ const ModuleAssignment: React.FC = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
                           Created: {new Date(module.createdAt).toLocaleDateString()}
                         </p>
-                        <button
-                          onClick={() => {
-                            setSelectedModule(module._id);
-                            loadModuleAssignment(module._id);
-                            setShowAssignModal(true);
-                          }}
-                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-                        >
-                          Assign to Students
-                        </button>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => {
+                              setSelectedModule(module._id);
+                              loadModuleAssignment(module._id);
+                              setShowAssignModal(true);
+                            }}
+                            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                          >
+                            Assign to Students
+                          </button>
+                          <button
+                            onClick={() => handleViewAssignments(module._id)}
+                            className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                          >
+                            View Assignments
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
