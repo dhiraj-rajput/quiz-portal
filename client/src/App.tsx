@@ -63,32 +63,33 @@ const AppContent = () => {
           {/* Test interface route without navbar for secure environment */}
           <Route path="/student/test-interface/:testId" element={<ProtectedRoute requiredRole="student"><TestInterface /></ProtectedRoute>} />
           
-          {/* All other routes with navbar */}
-          <Route path="/*" element={
-            <>
-              <Navbar />
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-                <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
-                <Route path="/admin/modules" element={<ProtectedRoute requiredRole="admin"><ModuleManagement /></ProtectedRoute>} />
-                <Route path="/admin/tests" element={<ProtectedRoute requiredRole="admin"><TestManagement /></ProtectedRoute>} />
-                <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><Analytics /></ProtectedRoute>} />
-                <Route path="/admin/assign-modules" element={<ProtectedRoute requiredRole="admin"><ModuleAssignment /></ProtectedRoute>} />
-                <Route path="/admin/assign-tests" element={<ProtectedRoute requiredRole="admin"><TestAssignment /></ProtectedRoute>} />
-                <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
-                <Route path="/student/modules" element={<ProtectedRoute requiredRole="student"><StudentModules /></ProtectedRoute>} />
-                <Route path="/student/modules/:moduleId/view" element={<ProtectedRoute requiredRole="student"><DocumentViewer /></ProtectedRoute>} />
-                <Route path="/student/tests" element={<ProtectedRoute requiredRole="student"><StudentTests /></ProtectedRoute>} />
-                <Route path="/student/results" element={<ProtectedRoute requiredRole="student"><StudentResults /></ProtectedRoute>} />
-                <Route path="/notifications" element={<ProtectedRoute><NotificationPage /></ProtectedRoute>} />
-                <Route path="/profile/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
-                <Route path="/" element={<RoleBasedRedirect />} />
-              </Routes>
-            </>
-          } />
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
+          {/* Admin routes with navbar */}
+          <Route path="/admin" element={<><Navbar /><ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute></>} />
+          <Route path="/admin/users" element={<><Navbar /><ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute></>} />
+          <Route path="/admin/modules" element={<><Navbar /><ProtectedRoute requiredRole="admin"><ModuleManagement /></ProtectedRoute></>} />
+          <Route path="/admin/tests" element={<><Navbar /><ProtectedRoute requiredRole="admin"><TestManagement /></ProtectedRoute></>} />
+          <Route path="/admin/analytics" element={<><Navbar /><ProtectedRoute requiredRole="admin"><Analytics /></ProtectedRoute></>} />
+          <Route path="/admin/assign-modules" element={<><Navbar /><ProtectedRoute requiredRole="admin"><ModuleAssignment /></ProtectedRoute></>} />
+          <Route path="/admin/assign-tests" element={<><Navbar /><ProtectedRoute requiredRole="admin"><TestAssignment /></ProtectedRoute></>} />
+          
+          {/* Student routes with navbar */}
+          <Route path="/student" element={<><Navbar /><ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute></>} />
+          <Route path="/student/modules" element={<><Navbar /><ProtectedRoute requiredRole="student"><StudentModules /></ProtectedRoute></>} />
+          <Route path="/student/modules/:moduleId/view" element={<><Navbar /><ProtectedRoute requiredRole="student"><DocumentViewer /></ProtectedRoute></>} />
+          <Route path="/student/tests" element={<><Navbar /><ProtectedRoute requiredRole="student"><StudentTests /></ProtectedRoute></>} />
+          <Route path="/student/results" element={<><Navbar /><ProtectedRoute requiredRole="student"><StudentResults /></ProtectedRoute></>} />
+          
+          {/* Other protected routes with navbar */}
+          <Route path="/notifications" element={<><Navbar /><ProtectedRoute><NotificationPage /></ProtectedRoute></>} />
+          <Route path="/profile/:userId" element={<><Navbar /><ProtectedRoute><UserProfile /></ProtectedRoute></>} />
+          
+          {/* Root redirect */}
+          <Route path="/" element={<RoleBasedRedirect />} />
         </Routes>
       </div>
     </Router>
