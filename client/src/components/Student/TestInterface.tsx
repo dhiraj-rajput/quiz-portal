@@ -61,6 +61,7 @@ const TestInterface: React.FC = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
   const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
+  const [wakeLock, setWakeLock] = useState<any>(null);
 
   // Load test data and assignment
   useEffect(() => {
@@ -154,17 +155,31 @@ const TestInterface: React.FC = () => {
             if (newCount >= 3) {
               // Auto-submit test after 3 exits
               showError('Test submitted automatically due to multiple fullscreen exits.');
+              // Release wake lock before submission
+              if (wakeLock) {
+                wakeLock.release();
+                setWakeLock(null);
+              }
               submitTestRef.current?.();
               return newCount;
             } else {
-              // Show warning
+              // Show warning and attempt to re-enter fullscreen
               setShowFullscreenWarning(true);
               showWarning(`Warning: You exited fullscreen mode. ${3 - newCount} exits remaining before auto-submission.`);
               
-              // Hide warning after 5 seconds
+              // Try to re-enter fullscreen after a short delay
+              setTimeout(() => {
+                if (document.documentElement.requestFullscreen) {
+                  document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {
+                    console.log('Failed to re-enter fullscreen');
+                  });
+                }
+              }, 1000);
+              
+              // Hide warning after 8 seconds
               setTimeout(() => {
                 setShowFullscreenWarning(false);
-              }, 5000);
+              }, 8000);
               
               return newCount;
             }
@@ -172,17 +187,35 @@ const TestInterface: React.FC = () => {
         }
       };
 
+      const handleVisibilityChange = () => {
+        // Detect when user switches tabs/apps
+        if (document.hidden) {
+          showWarning('Warning: Switching tabs or applications during the test is not recommended.');
+        }
+      };
+
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        // Prevent accidental page close/refresh
+        e.preventDefault();
+        e.returnValue = 'Are you sure you want to leave? Your test progress will be lost.';
+        return 'Are you sure you want to leave? Your test progress will be lost.';
+      };
+
       document.addEventListener('fullscreenchange', handleFullscreenChange);
       document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.addEventListener('msfullscreenchange', handleFullscreenChange);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('beforeunload', handleBeforeUnload);
 
       return () => {
         document.removeEventListener('fullscreenchange', handleFullscreenChange);
         document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
         document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
       };
     }
-  }, [currentStep]);
+  }, [currentStep, wakeLock]);
 
   const loadTestData = async () => {
     try {
@@ -258,16 +291,38 @@ const TestInterface: React.FC = () => {
         try {
           await navigator.storage.persist();
         } catch (e) {
-          // Storage persistence not available
+          console.log('Storage persistence not available');
         }
       }
       
       // Request notification permission for test alerts
       if ('Notification' in window && Notification.permission === 'default') {
         try {
-          await Notification.requestPermission();
+          const permission = await Notification.requestPermission();
+          console.log('Notification permission:', permission);
         } catch (e) {
-          // Notification permission not available
+          console.log('Notification permission not available');
+        }
+      }
+
+      // Request wake lock to keep screen awake
+      if ('wakeLock' in navigator) {
+        try {
+          const wakeLockObj = await (navigator as any).wakeLock.request('screen');
+          setWakeLock(wakeLockObj);
+          console.log('Wake lock acquired');
+        } catch (e) {
+          console.log('Wake lock not available');
+        }
+      }
+
+      // Request permissions for device orientation lock (mobile)
+      if ('screen' in window && 'orientation' in (window as any).screen) {
+        try {
+          await (window as any).screen.orientation.lock('portrait-primary');
+          console.log('Screen orientation locked');
+        } catch (e) {
+          console.log('Screen orientation lock not available');
         }
       }
       
@@ -277,7 +332,8 @@ const TestInterface: React.FC = () => {
       
       setCurrentStep('fullscreen-request');
     } catch (error) {
-      // Cookie permission error - continue with test
+      console.error('Cookie permission error:', error);
+      // Continue with test even if some permissions fail
       setCurrentStep('fullscreen-request');
     }
   };
@@ -296,15 +352,35 @@ const TestInterface: React.FC = () => {
       // Request fullscreen with proper error handling
       let fullscreenPromise;
       if (document.documentElement.requestFullscreen) {
-        fullscreenPromise = document.documentElement.requestFullscreen();
+        fullscreenPromise = document.documentElement.requestFullscreen({ navigationUI: 'hide' });
       } else if ((document.documentElement as any).webkitRequestFullscreen) {
-        fullscreenPromise = (document.documentElement as any).webkitRequestFullscreen();
+        fullscreenPromise = (document.documentElement as any).webkitRequestFullscreen((Element as any).ALLOW_KEYBOARD_INPUT);
       } else if ((document.documentElement as any).msRequestFullscreen) {
         fullscreenPromise = (document.documentElement as any).msRequestFullscreen();
       }
 
       if (fullscreenPromise) {
         await fullscreenPromise;
+        
+        // Add fullscreen change listener immediately after entering fullscreen
+        const handleFullscreenExit = () => {
+          if (!document.fullscreenElement && 
+              !(document as any).webkitFullscreenElement && 
+              !(document as any).msFullscreenElement) {
+            
+            // Attempt to re-enter fullscreen immediately
+            setTimeout(() => {
+              if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+              }
+            }, 100);
+          }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenExit);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenExit);
+        document.addEventListener('msfullscreenchange', handleFullscreenExit);
+        
         // Wait a moment to ensure fullscreen is active
         setTimeout(() => {
           if (document.fullscreenElement || 
@@ -400,6 +476,12 @@ const TestInterface: React.FC = () => {
 
       if (response.success) {
         setCurrentStep('submitted');
+        
+        // Clean up resources
+        if (wakeLock) {
+          wakeLock.release();
+          setWakeLock(null);
+        }
         
         // Exit fullscreen
         if (document.fullscreenElement) {
