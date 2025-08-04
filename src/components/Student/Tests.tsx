@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Clock, Play, CheckCircle, AlertCircle, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { studentAPI } from '../../utils/api';
+import { useNotifications } from '../../hooks/useNotifications';
 import '../../styles/Tests.css';
 import '../../styles/Common.css';
 interface Test {
@@ -42,6 +43,7 @@ interface TestResult {
 
 const StudentTests: React.FC = () => {
   const navigate = useNavigate();
+  const { showError, showWarning } = useNotifications();
   const [assignments, setAssignments] = useState<TestAssignment[]>([]);
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,9 +112,9 @@ const StudentTests: React.FC = () => {
   const handleStartTest = (testId: string, canAttempt: boolean, attemptCount: number, maxAttempts: number) => {
     if (!canAttempt) {
       if (attemptCount >= maxAttempts) {
-        alert('You have reached the maximum number of attempts for this test. Please contact your administrator for additional attempts.');
+        showError('You have reached the maximum number of attempts for this test. Please contact your administrator for additional attempts.');
       } else {
-        alert('This test is no longer available for attempts.');
+        showError('This test is no longer available for attempts.');
       }
       return;
     }
@@ -123,21 +125,18 @@ const StudentTests: React.FC = () => {
     
     if (!newTab) {
       // If popup blocked, show message to user
-      alert('Please allow popups for this site to take the test in a new tab. You can also navigate manually to the test.');
+      showWarning('Please allow popups for this site to take the test in a new tab. You can also navigate manually to the test.');
       // Fallback to current tab navigation
       navigate(testUrl);
     } else {
       // Focus the new tab
       newTab.focus();
     }
-    
-    console.log('Starting test:', testId);
   };
 
   const handleViewResults = (testId: string) => {
     // Navigate to results with a filter for this specific test
     navigate(`/student/results?testId=${testId}`);
-    console.log('Viewing results for test:', testId);
   };
 
   if (loading) {

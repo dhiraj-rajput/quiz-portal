@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 import { 
   Clock, 
   ChevronLeft, 
@@ -37,6 +38,7 @@ const TestInterface: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { showError, showWarning } = useNotifications();
   
   // Test data
   const [testData, setTestData] = useState<TestData | null>(null);
@@ -60,19 +62,12 @@ const TestInterface: React.FC = () => {
 
   // Load test data and assignment
   useEffect(() => {
-    console.log('TestInterface useEffect - testId:', testId);
-    console.log('TestInterface useEffect - user:', user);
-    console.log('TestInterface useEffect - auth loading:', loading);
-    
     // Only load test data if authentication is complete and user is authenticated
     if (!loading && user && testId) {
-      console.log('TestInterface - conditions met, loading test data');
       loadTestData();
     } else if (!loading && !user) {
-      console.log('TestInterface - no user after auth complete');
       setError('Authentication required. Please log in again.');
     } else if (!testId) {
-      console.log('No testId provided');
       setError('Test ID is required');
     }
   }, [testId, user, loading]);
@@ -154,7 +149,6 @@ const TestInterface: React.FC = () => {
         setError(response.error?.message || 'Failed to load test data');
       }
     } catch (err: any) {
-      console.error('Error loading test data:', err);
       if (err.response?.status === 401) {
         setError('Authentication expired. Please log in again.');
         setTimeout(() => {
@@ -184,7 +178,7 @@ const TestInterface: React.FC = () => {
       const cookiesEnabled = document.cookie.indexOf('test-cookie-check=1') !== -1;
       
       if (!cookiesEnabled) {
-        alert('Cookies must be enabled to take this test. Please enable cookies in your browser settings and refresh the page to try again.');
+        showError('Cookies must be enabled to take this test. Please enable cookies in your browser settings and refresh the page to try again.');
         return;
       }
 
@@ -194,10 +188,9 @@ const TestInterface: React.FC = () => {
       // Request storage permission for better compatibility
       if ('navigator' in window && 'storage' in navigator && 'persist' in navigator.storage) {
         try {
-          const persistent = await navigator.storage.persist();
-          console.log('Storage persistence granted:', persistent);
+          await navigator.storage.persist();
         } catch (e) {
-          console.log('Storage persistence not available:', e);
+          // Storage persistence not available
         }
       }
       
@@ -207,8 +200,7 @@ const TestInterface: React.FC = () => {
       
       setCurrentStep('fullscreen-request');
     } catch (error) {
-      console.error('Cookie permission error:', error);
-      alert('There was an issue with cookie permissions. The test will continue, but some security features may not work properly.');
+      // Cookie permission error - continue with test
       setCurrentStep('fullscreen-request');
     }
   };
@@ -219,7 +211,7 @@ const TestInterface: React.FC = () => {
       if (!document.documentElement.requestFullscreen && 
           !(document.documentElement as any).webkitRequestFullscreen && 
           !(document.documentElement as any).msRequestFullscreen) {
-        alert('Fullscreen mode is not supported in this browser. The test will continue in normal mode.');
+        showWarning('Fullscreen mode is not supported in this browser. The test will continue in normal mode.');
         setCurrentStep('test');
         return;
       }
@@ -244,7 +236,7 @@ const TestInterface: React.FC = () => {
             setCurrentStep('test');
           } else {
             // Fullscreen didn't work, continue anyway
-            alert('Fullscreen mode could not be activated. The test will continue in normal mode for the best experience.');
+            showWarning('Fullscreen mode could not be activated. The test will continue in normal mode for the best experience.');
             setCurrentStep('test');
           }
         }, 500);
@@ -256,9 +248,9 @@ const TestInterface: React.FC = () => {
       
       // Check if user denied the request
       if (err instanceof Error && err.name === 'NotAllowedError') {
-        alert('Fullscreen permission was denied. Please allow fullscreen mode and try again, or continue in normal mode.');
+        showWarning('Fullscreen permission was denied. Please allow fullscreen mode and try again, or continue in normal mode.');
       } else {
-        alert('Fullscreen mode is not available. The test will continue in normal mode.');
+        showWarning('Fullscreen mode is not available. The test will continue in normal mode.');
       }
       
       // Continue with the test anyway
@@ -272,7 +264,6 @@ const TestInterface: React.FC = () => {
         ...prev,
         [questionIndex]: answerIndex
       };
-      console.log(`Answer recorded for question ${questionIndex}:`, answerIndex, 'All answers:', newAnswers);
       return newAnswers;
     });
   };
@@ -326,14 +317,6 @@ const TestInterface: React.FC = () => {
         timeSpent: Math.round(((testData?.timeLimit || 60) * 60 - timeRemaining) / 60), // in minutes
         startedAt: startTime.toISOString()
       };
-
-      console.log('Final submit data:', {
-        answers: formattedAnswers,
-        answersCount: formattedAnswers.length,
-        totalQuestions: testData?.questions.length,
-        timeSpent: submitData.timeSpent,
-        startedAt: submitData.startedAt
-      });
       
       // Use the testAPI to submit the test
       const response = await testAPI.submitTest(testId!, submitData);
@@ -361,15 +344,8 @@ const TestInterface: React.FC = () => {
         throw new Error(errorMessage);
       }
     } catch (err: any) {
-      console.error('Error submitting test:', err);
-      console.error('Error details:', {
-        message: err.message,
-        response: err.response,
-        status: err.status,
-        stack: err.stack
-      });
       setError(`Failed to submit test: ${err.message || 'Unknown error'}`);
-      alert(`Failed to submit test: ${err.message || 'Unknown error'}. Please try again.`);
+      showError(`Failed to submit test: ${err.message || 'Unknown error'}. Please try again.`);
     } finally {
       setSubmitting(false);
     }
@@ -456,70 +432,122 @@ const TestInterface: React.FC = () => {
   // Instructions Step
   if (currentStep === 'instructions') {
     return (
-      <div className="instructions-container">
-        <div className="instructions-content">
-          <div className="instructions-card">
-            <h1 className="instructions-title">
-              {testData?.title}
-            </h1>
-            
-            <div className="instructions-info-section">
-              <h2 className="instructions-info-title">Test Information</h2>
-              <div className="instructions-info-grid">
-                <div className="instructions-info-item instructions-info-blue">
-                  <Clock className="instructions-info-icon" />
-                  <p className="instructions-info-label">Duration</p>
-                  <p className="instructions-info-value">{testData?.timeLimit} minutes</p>
-                </div>
-                <div className="instructions-info-item instructions-info-green">
-                  <span className="text-2xl mb-1">📝</span>
-                  <p className="instructions-info-label">Questions</p>
-                  <p className="instructions-info-value">{testData?.totalQuestions} questions</p>
-                </div>
-                <div className="instructions-info-item instructions-info-purple">
-                  <span className="text-2xl mb-1">🔄</span>
-                  <p className="instructions-info-label">Attempts</p>
-                  <p className="instructions-info-value">1 max</p>
-                </div>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+              <h1 className="text-3xl font-bold mb-2">
+                {testData?.title}
+              </h1>
+              <p className="text-blue-100 text-lg">
+                {testData?.description}
+              </p>
             </div>
 
-            <div className="instructions-text-section">
-              <h2 className="instructions-text-title">Instructions</h2>
-              <div className="instructions-prose">
-                <div className="instructions-guidelines">
-                  <h3 className="instructions-guidelines-title">Important Guidelines:</h3>
-                  <ul className="instructions-guidelines-list">
-                    <li>• Read each question carefully before selecting an answer</li>
-                    <li>• You can navigate between questions using Previous/Next buttons</li>
-                    <li>• Your answers are automatically saved as you progress</li>
-                    <li>• The test will be submitted automatically when time expires</li>
-                    <li>• Ensure stable internet connection throughout the test</li>
-                    <li>• Do not refresh the page or close the browser during the test</li>
-                  </ul>
+            {/* Test Information Cards */}
+            <div className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-6 text-center border border-blue-200 dark:border-blue-700">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Duration</h3>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{testData?.timeLimit}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">minutes</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-6 text-center border border-green-200 dark:border-green-700">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-xl">📝</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Questions</h3>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{testData?.totalQuestions}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">total questions</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-6 text-center border border-purple-200 dark:border-purple-700">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-xl">🔄</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Attempts</h3>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">1</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">maximum</p>
+                </div>
+              </div>
+
+              {/* Instructions Section */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 mb-8">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <span className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                    <span className="text-white text-sm">📋</span>
+                  </span>
+                  Test Instructions
+                </h2>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">📋 Important Guidelines:</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="text-gray-700 dark:text-gray-300">Read each question carefully before selecting an answer</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="text-gray-700 dark:text-gray-300">Navigate between questions using Previous/Next buttons</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="text-gray-700 dark:text-gray-300">Your answers are automatically saved as you progress</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3">⚠️ Security Requirements:</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="text-gray-700 dark:text-gray-300">Test will be submitted automatically when time expires</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="text-gray-700 dark:text-gray-300">Do not refresh the page or close the browser</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                        <span className="text-gray-700 dark:text-gray-300">Maintain stable internet connection throughout</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
                 
                 {testData?.instructions && (
-                  <div className="instructions-custom-text">
-                    {testData.instructions}
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+                    <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Additional Instructions:</h3>
+                    <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                      {testData.instructions}
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
 
-            <div className="instructions-actions">
-              <button
-                onClick={() => navigate('/student/tests')}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleStartTest}
-                className="btn btn-primary instructions-start-btn"
-              >
-                Start Test
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => navigate('/student/tests')}
+                  className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+                >
+                  ← Cancel Test
+                </button>
+                <button
+                  onClick={handleStartTest}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  🚀 Start Test
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -530,48 +558,91 @@ const TestInterface: React.FC = () => {
   // Cookie Permission Step
   if (currentStep === 'cookie-permission') {
     return (
-      <div className="cookie-permission-container">
-        <div className="cookie-permission-card">
-          <div className="cookie-permission-content">
-            <span className="cookie-permission-icon">🍪</span>
-            <h2 className="cookie-permission-title">
-              Enable Browser Cookies
-            </h2>
-            <p className="cookie-permission-description">
-              This test requires cookies to be enabled in your browser for security and session management. 
-              We'll check if cookies are working properly before proceeding to fullscreen mode.
-            </p>
-            <div className="cookie-permission-features">
-              <p className="cookie-permission-features-text">
-                <strong>Why cookies are needed:</strong><br/>
-                • Maintain your test session securely<br/>
-                • Prevent unauthorized access or cheating<br/>
-                • Track test progress and save answers<br/>
-                • Ensure fair testing conditions for all students
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4 flex items-center justify-center">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 p-8 text-center">
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">🍪</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Enable Browser Cookies
+              </h2>
+              <p className="text-orange-100">
+                Required for secure test environment
               </p>
             </div>
-            <div className="cookie-permission-features">
-              <p className="cookie-permission-features-text">
-                <strong>Next steps:</strong><br/>
-                1. Click "Check Cookies & Continue" below<br/>
-                2. Allow fullscreen mode when prompted<br/>
-                3. Begin your secure test environment
-              </p>
+
+            {/* Content */}
+            <div className="p-8">
+              <div className="text-center mb-8">
+                <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+                  This test requires cookies to be enabled in your browser for security and session management. 
+                  We'll verify that cookies are working properly before proceeding to the test environment.
+                </p>
+              </div>
+
+              {/* Features Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-xl">🔒</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Why cookies are needed:</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    <li>• Maintain your test session securely</li>
+                    <li>• Prevent unauthorized access</li>
+                    <li>• Track test progress and save answers</li>
+                    <li>• Ensure fair testing conditions</li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-6">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-xl">📋</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Next steps:</h3>
+                  <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    <li>1. Click "Check Cookies & Continue" below</li>
+                    <li>2. Allow fullscreen mode when prompted</li>
+                    <li>3. Begin your secure test environment</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Privacy Notice */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 mb-8">
+                <div className="flex items-start">
+                  <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">
+                    <span className="text-white text-sm">ℹ️</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">Privacy Notice</h4>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      Cookies are only used for this test session and will be automatically removed when you complete or exit the test. 
+                      No personal browsing data is collected or stored.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => setCurrentStep('instructions')}
+                  className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+                >
+                  ← Back to Instructions
+                </button>
+                <button
+                  onClick={handleCookiePermission}
+                  className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  🍪 Check Cookies & Continue
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="cookie-permission-actions">
-            <button
-              onClick={() => setCurrentStep('instructions')}
-              className="btn btn-secondary"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleCookiePermission}
-              className="btn btn-success cookie-permission-continue-btn"
-            >
-              Check Cookies & Continue
-            </button>
           </div>
         </div>
       </div>
@@ -581,44 +652,115 @@ const TestInterface: React.FC = () => {
   // Fullscreen Request Step
   if (currentStep === 'fullscreen-request') {
     return (
-      <div className="fullscreen-request-container">
-        <div className="fullscreen-request-card">
-          <Maximize className="fullscreen-request-icon" />
-          <h2 className="fullscreen-request-title">
-            Ready for Fullscreen Test Mode
-          </h2>
-          <p className="fullscreen-request-description">
-            Your browser will now request permission to enter fullscreen mode. This creates a secure, 
-            distraction-free environment for taking your test. Click "Allow" when your browser asks for permission.
-          </p>
-          <div className="fullscreen-request-warning">
-            <p className="fullscreen-request-warning-text">
-              <strong>Security Notice:</strong> Exiting fullscreen mode more than 3 times will automatically submit your test. 
-              This ensures fair testing conditions. Make sure you're ready to take the test without interruptions.
-            </p>
-          </div>
-          <div className="fullscreen-request-warning">
-            <p className="fullscreen-request-warning-text">
-              <strong>What happens next:</strong><br/>
-              1. Your browser will ask for fullscreen permission<br/>
-              2. Click "Allow" to grant permission<br/>
-              3. Your test will begin in secure fullscreen mode<br/>
-              4. Stay in fullscreen until test completion
-            </p>
-          </div>
-          <div className="fullscreen-request-actions">
-            <button
-              onClick={() => setCurrentStep('cookie-permission')}
-              className="btn btn-secondary"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleEnterFullscreen}
-              className="btn btn-primary fullscreen-request-start-btn"
-            >
-              Request Fullscreen & Start Test
-            </button>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4 flex items-center justify-center">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-8 text-center">
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Maximize className="h-10 w-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Ready for Fullscreen Test Mode
+              </h2>
+              <p className="text-purple-100">
+                Secure, distraction-free testing environment
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="p-8">
+              <div className="text-center mb-8">
+                <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
+                  Your browser will now request permission to enter fullscreen mode. This creates a secure, 
+                  distraction-free environment for taking your test. Click "Allow" when your browser asks for permission.
+                </p>
+              </div>
+
+              {/* Warning Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6 border border-red-200 dark:border-red-700">
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                      <span className="text-white text-xl">⚠️</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-red-800 dark:text-red-200 mb-2">Security Notice</h3>
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        Exiting fullscreen mode more than <strong>3 times</strong> will automatically submit your test. 
+                        This ensures fair testing conditions for all students.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                      <span className="text-white text-xl">💡</span>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Pro Tip</h3>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Make sure you're ready to take the test without interruptions. 
+                        Close other applications and ensure you have stable internet.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Process Steps */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 mb-8">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-center">What happens next:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="font-bold">1</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Permission Request</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Browser asks for fullscreen permission</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="font-bold">2</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Grant Permission</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Click "Allow" to grant permission</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="font-bold">3</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Fullscreen Mode</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Test begins in secure fullscreen</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="font-bold">4</span>
+                    </div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-1">Complete Test</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Stay in fullscreen until finished</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => setCurrentStep('cookie-permission')}
+                  className="px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+                >
+                  ← Back to Cookies
+                </button>
+                <button
+                  onClick={handleEnterFullscreen}
+                  className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  🖥️ Request Fullscreen & Start Test
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -814,23 +956,102 @@ const TestInterface: React.FC = () => {
   // Submitted Step
   if (currentStep === 'submitted') {
     return (
-      <div className="completion-container">
-        <div className="completion-card">
-          <div className="completion-icon-container">
-            <Send className="completion-icon" />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4 flex items-center justify-center">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-8 text-center">
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Send className="h-10 w-10 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Test Submitted Successfully!
+              </h2>
+              <p className="text-green-100">
+                Your answers have been securely recorded
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="p-8">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-6">
+                  Congratulations! Your test has been submitted successfully. Your answers have been 
+                  saved and will be reviewed by your instructor.
+                </p>
+              </div>
+
+              {/* Test Summary */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6 mb-8">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-center">Test Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-white text-xl">📝</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Test Completed</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{testData?.title}</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-white text-xl">⏰</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Submitted At</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <span className="text-white text-xl">📊</span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Questions Answered</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {Object.keys(answers).length} / {testData?.totalQuestions || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Steps */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 mb-8">
+                <div className="flex items-start">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                    <span className="text-white text-xl">💡</span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">What's Next?</h3>
+                    <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                      <li>• Your instructor will review and grade your test</li>
+                      <li>• Results will be available in the "Results" section</li>
+                      <li>• You'll receive notifications when grades are posted</li>
+                      <li>• Check back regularly for feedback and scores</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Auto-redirect notice */}
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  You will be automatically redirected to the tests page in a few seconds...
+                </p>
+              </div>
+
+              {/* Action Button */}
+              <div className="text-center">
+                <button
+                  onClick={() => navigate('/student/tests')}
+                  className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  🏠 Return to Tests Dashboard
+                </button>
+              </div>
+            </div>
           </div>
-          <h2 className="completion-title">
-            Test Submitted Successfully!
-          </h2>
-          <p className="completion-message">
-            Your answers have been recorded. You will be redirected to the tests page shortly.
-          </p>
-          <button
-            onClick={() => navigate('/student/tests')}
-            className="btn btn-primary completion-btn"
-          >
-            Return to Tests
-          </button>
         </div>
       </div>
     );

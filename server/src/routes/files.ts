@@ -27,7 +27,7 @@ const getMimeType = (fileType: string): string => {
 const router = express.Router();
 
 // Custom middleware for file authentication that supports query token
-const fileAuth = async (req: any, res: any, next: any) => {
+const fileAuth = async (req: any, _res: any, next: any) => {
   try {
     let token = req.headers.authorization?.replace('Bearer ', '');
     

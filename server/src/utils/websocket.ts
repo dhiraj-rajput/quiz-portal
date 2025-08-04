@@ -70,8 +70,6 @@ export class WebSocketService {
 
   private setupEventHandlers() {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
-      console.log(`User ${socket.data.userId} connected via WebSocket`);
-
       // Join user-specific room for personalized notifications
       socket.join(`user:${socket.data.userId}`);
       
@@ -124,8 +122,6 @@ export class WebSocketService {
       duration: data.duration,
       serverTime: new Date().toISOString(),
     });
-
-    console.log(`Test session started: ${sessionId}`);
   }
 
   private handleTestHeartbeat(socket: AuthenticatedSocket, data: { testId: string }) {
@@ -151,14 +147,12 @@ export class WebSocketService {
     }
   }
 
-  private handleAutoSave(socket: AuthenticatedSocket, data: { testId: string; answers: any }) {
+  private handleAutoSave(socket: AuthenticatedSocket, _data: { testId: string; answers: any }) {
     // This will be integrated with the database save operation
     socket.emit('test:auto-saved', {
       timestamp: new Date().toISOString(),
       success: true,
     });
-
-    console.log(`Auto-save for user ${socket.data.userId} on test ${data.testId}`);
   }
 
   private handleTestSubmit(socket: AuthenticatedSocket, data: { testId: string }) {
@@ -178,8 +172,6 @@ export class WebSocketService {
         testId: data.testId,
         submittedAt: new Date().toISOString(),
       });
-
-      console.log(`Test submitted: ${sessionId}`);
     }
   }
 
@@ -201,8 +193,6 @@ export class WebSocketService {
         reason: 'Time expired',
         submittedAt: new Date().toISOString(),
       });
-
-      console.log(`Auto-submitted test: ${sessionId}`);
     }
   }
 
@@ -222,22 +212,17 @@ export class WebSocketService {
         timestamp: new Date().toISOString(),
         from: 'admin',
       });
-
-      console.log(`Admin broadcast sent: ${data.message}`);
     }
   }
 
   private handleDisconnect(socket: AuthenticatedSocket) {
-    console.log(`User ${socket.data.userId} disconnected`);
-
     // Clean up any active test sessions
-    for (const [sessionId, session] of this.activeTestSessions.entries()) {
+    for (const [_sessionId, session] of this.activeTestSessions.entries()) {
       if (session.userId === socket.data.userId) {
         if (session.autoSaveInterval) {
           clearInterval(session.autoSaveInterval);
         }
         // Keep the session data but mark as disconnected
-        console.log(`Preserved test session for reconnection: ${sessionId}`);
       }
     }
   }

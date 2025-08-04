@@ -41,24 +41,17 @@ const DocumentViewer: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log('DocumentViewer - moduleId:', moduleId);
-    console.log('DocumentViewer - user:', !!user);
-    console.log('DocumentViewer - authLoading:', authLoading);
-    
     // Only load module details if authentication is complete and user is authenticated
     if (!authLoading && user && moduleId) {
-      console.log('DocumentViewer - conditions met, loading module details');
       // Add a small delay to ensure auth context is fully initialized
       const timeoutId = setTimeout(() => {
         loadModuleDetails();
       }, 100);
       return () => clearTimeout(timeoutId);
     } else if (!authLoading && !user) {
-      console.log('DocumentViewer - no user after auth complete');
       setError('Authentication required. Please log in again.');
       setLoading(false);
     } else if (!moduleId) {
-      console.log('No moduleId provided');
       setError('Module ID is required');
       setLoading(false);
     }
@@ -68,15 +61,12 @@ const DocumentViewer: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      console.log('DocumentViewer: Starting API call for assigned modules');
       
       // Get assigned modules and find the specific one
       const response = await studentAPI.getAssignedModules(1, 100);
-      console.log('DocumentViewer: API response:', response);
       
       if (response.success && response.data) {
         const assignment = response.data.modules?.find((a: any) => a.moduleId?._id === moduleId);
-        console.log('DocumentViewer: Found assignment:', assignment);
         
         if (assignment && assignment.moduleId) {
           setModule(assignment.moduleId);
@@ -85,15 +75,12 @@ const DocumentViewer: React.FC = () => {
             setSelectedFile(assignment.moduleId.files[0]);
           }
         } else {
-          console.log('DocumentViewer: Module not found in assignments');
           setError('Module not found or not assigned to you');
         }
       } else {
-        console.log('DocumentViewer: API call failed or no data returned');
         setError(`Failed to load module details: ${response.message || 'Unknown error'}`);
       }
     } catch (err: any) {
-      console.error('DocumentViewer: Error loading module:', err);
       
       // Check if it's an authentication error
       if (err.status === 401 || err.message?.includes('Authentication')) {
@@ -198,14 +185,6 @@ const DocumentViewer: React.FC = () => {
     const mimeType = selectedFile.mimeType || (selectedFile as any).fileType || '';
     const fileName = selectedFile.originalName || selectedFile.fileName || '';
     
-    // Debug logging
-    console.log('DocumentViewer renderFileViewer:', {
-      selectedFile,
-      mimeType,
-      fileName,
-      fileUrl
-    });
-    
     // Determine file type from extension if mimeType/fileType is not available
     const getFileTypeFromExtension = (filename: string) => {
       const extension = filename.toLowerCase().split('.').pop();
@@ -233,9 +212,7 @@ const DocumentViewer: React.FC = () => {
     
     const effectiveType = mimeType || getFileTypeFromExtension(fileName);
     
-    console.log('DocumentViewer effective file type:', effectiveType);
-    console.log('DocumentViewer file URL:', fileUrl);
-
+    
     // For PDFs
     if (effectiveType === 'application/pdf' || effectiveType === 'pdf') {
       return (
@@ -327,7 +304,7 @@ const DocumentViewer: React.FC = () => {
             className="w-full h-full border-0"
             title={selectedFile.originalName}
             onError={() => {
-              console.error('Google Docs Viewer failed to load Office document');
+              // Handle Google Docs Viewer error silently
             }}
           />
           {/* Fallback message for Office documents */}

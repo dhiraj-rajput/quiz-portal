@@ -1,0 +1,198 @@
+/* Module Assignment Component Styles */
+
+/* Main Container */
+.module-assignment-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+}
+
+.module-assignment-content {
+  @apply max-w-7xl mx-auto py-6 sm:px-6 lg:px-8;
+}
+
+/* Header Section */
+.module-assignment-header {
+  @apply px-4 py-6 sm:px-0;
+}
+
+.module-assignment-title {
+  @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+.module-assignment-subtitle {
+  @apply mt-2 text-gray-600 dark:text-gray-400;
+}
+
+/* Modules Overview Section */
+.modules-overview {
+  @apply px-4 sm:px-0 mb-8;
+}
+
+.modules-overview-card {
+  @apply bg-white dark:bg-gray-800 shadow rounded-lg;
+}
+
+.modules-overview-content {
+  @apply px-4 py-5 sm:p-6;
+}
+
+.modules-overview-title {
+  @apply text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4;
+}
+
+.modules-grid {
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.module-card {
+  @apply border rounded-lg p-4 bg-gray-50 dark:bg-gray-700;
+}
+
+.module-card-header {
+  @apply flex justify-between items-start mb-3;
+}
+
+.module-card-title {
+  @apply font-medium text-gray-900 dark:text-white;
+}
+
+.module-card-date {
+  @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+.module-card-description {
+  @apply text-sm text-gray-600 dark:text-gray-300 mb-4;
+}
+
+.module-card-assign-button {
+  @apply w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.modules-empty-state {
+  @apply text-gray-500 dark:text-gray-400 text-center py-4;
+}
+
+/* Assignment Modal */
+.assignment-modal-overlay {
+  @apply fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50;
+}
+
+.assignment-modal-container {
+  @apply relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800;
+}
+
+.assignment-modal-content {
+  @apply mt-3;
+}
+
+.assignment-modal-title {
+  @apply text-lg font-medium text-gray-900 dark:text-white mb-4;
+}
+
+.assignment-modal-module-info {
+  @apply text-sm text-gray-600 dark:text-gray-400 mb-4;
+}
+
+/* Due Date Section */
+.due-date-section {
+  @apply mb-4;
+}
+
+.due-date-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.due-date-input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white;
+}
+
+/* Student Search Section */
+.student-search-section {
+  @apply mb-4;
+}
+
+.student-search-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.student-search-input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white;
+}
+
+/* Student Selection */
+.student-selection-section {
+  @apply mb-4;
+}
+
+.student-selection-header {
+  @apply flex justify-between items-center mb-2;
+}
+
+.student-selection-label {
+  @apply text-sm font-medium text-gray-700 dark:text-gray-300;
+}
+
+.student-selection-count {
+  @apply text-sm text-blue-600 dark:text-blue-400;
+}
+
+.student-list-container {
+  @apply max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 space-y-2;
+}
+
+.student-list-item {
+  @apply flex items-center;
+}
+
+.student-checkbox {
+  @apply mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded;
+}
+
+.student-info {
+  @apply flex-1;
+}
+
+.student-name {
+  @apply text-sm font-medium text-gray-900 dark:text-white;
+}
+
+.student-email {
+  @apply text-xs text-gray-500 dark:text-gray-400;
+}
+
+.student-list-empty {
+  @apply text-sm text-gray-500 dark:text-gray-400 text-center py-4;
+}
+
+/* Modal Actions */
+.modal-actions {
+  @apply flex justify-end space-x-3;
+}
+
+.modal-cancel-button {
+  @apply px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+}
+
+.modal-assign-button {
+  @apply px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+}
+
+.modal-assign-button-disabled {
+  @apply px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-400 cursor-not-allowed;
+}
+
+/* Loading States */
+.module-assignment-loading-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center;
+}
+
+.module-assignment-loading-content {
+  @apply text-center;
+}
+
+.module-assignment-loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto;
+}
+
+.module-assignment-loading-text {
+  @apply mt-4 text-gray-600 dark:text-gray-400;
+}

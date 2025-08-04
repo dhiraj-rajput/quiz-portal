@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../../hooks/useNotifications';
 import { 
   Users, 
   BookOpen, 
@@ -8,10 +9,11 @@ import {
   UserCheck,
   AlertCircle
 } from 'lucide-react';
-import { adminAPI } from '../../utils/api';
+import { adminAPI, moduleAPI, testAPI } from '../../utils/api';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useNotifications();
   const [stats, setStats] = useState({
     totalUsers: 0,
     pendingRequests: 0,
@@ -32,56 +34,53 @@ const AdminDashboard: React.FC = () => {
       setLoading(true);
       
       // Load data from API
-      const [usersResponse, pendingResponse] = await Promise.all([
-        adminAPI.getUsers(1, 10).catch(() => ({ success: false, data: null })),
-        adminAPI.getPendingRequests(1, 10).catch(() => ({ success: false, data: null }))
+      const [usersResponse, pendingResponse, modulesResponse, testsResponse] = await Promise.all([
+        adminAPI.getUsers(1, 100).catch(() => ({ success: false, data: null })),
+        adminAPI.getPendingRequests(1, 100).catch(() => ({ success: false, data: null })),
+        moduleAPI.getModules(1, 100).catch(() => ({ success: false, data: null })),
+        testAPI.getTests(1, 100).catch(() => ({ success: false, data: null }))
       ]);
 
-      // Ensure we have arrays, fallback to localStorage if API fails
+      // Extract data from responses
       const users = (usersResponse.success && usersResponse.data && usersResponse.data.users)
         ? usersResponse.data.users 
-        : JSON.parse(localStorage.getItem('users') || '[]');
+        : [];
       
       const pending = (pendingResponse.success && pendingResponse.data && pendingResponse.data.requests)
         ? pendingResponse.data.requests 
-        : JSON.parse(localStorage.getItem('pendingRequests') || '[]');
+        : [];
 
-      const modules = JSON.parse(localStorage.getItem('modules') || '[]');
-      const mockTests = JSON.parse(localStorage.getItem('mockTests') || '[]');
-      const testAssignments = JSON.parse(localStorage.getItem('testAssignments') || '[]');
-      const testResults = JSON.parse(localStorage.getItem('testResults') || '[]');
+      const modules = (modulesResponse.success && modulesResponse.data && modulesResponse.data.modules)
+        ? modulesResponse.data.modules 
+        : [];
+
+      const tests = (testsResponse.success && testsResponse.data && testsResponse.data.tests)
+        ? testsResponse.data.tests 
+        : [];
 
       setStats({
         totalUsers: Array.isArray(users) ? users.filter((u: any) => u.role === 'student').length : 0,
         pendingRequests: Array.isArray(pending) ? pending.length : 0,
         totalModules: Array.isArray(modules) ? modules.length : 0,
-        totalTests: Array.isArray(mockTests) ? mockTests.length : 0,
-        activeTests: Array.isArray(testAssignments) ? testAssignments.length : 0,
-        completedTests: Array.isArray(testResults) ? testResults.length : 0
+        totalTests: Array.isArray(tests) ? tests.length : 0,
+        activeTests: 0, // TODO: Get from test assignments API
+        completedTests: 0 // TODO: Get from test results API
       });
 
       setPendingRequests(Array.isArray(pending) ? pending : []);
 
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      // Fallback to localStorage data
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const pending = JSON.parse(localStorage.getItem('pendingRequests') || '[]');
-      const modules = JSON.parse(localStorage.getItem('modules') || '[]');
-      const mockTests = JSON.parse(localStorage.getItem('mockTests') || '[]');
-      const testAssignments = JSON.parse(localStorage.getItem('testAssignments') || '[]');
-      const testResults = JSON.parse(localStorage.getItem('testResults') || '[]');
-
+      // Set empty stats on error
       setStats({
-        totalUsers: Array.isArray(users) ? users.filter((u: any) => u.role === 'student').length : 0,
-        pendingRequests: Array.isArray(pending) ? pending.length : 0,
-        totalModules: Array.isArray(modules) ? modules.length : 0,
-        totalTests: Array.isArray(mockTests) ? mockTests.length : 0,
-        activeTests: Array.isArray(testAssignments) ? testAssignments.length : 0,
-        completedTests: Array.isArray(testResults) ? testResults.length : 0
+        totalUsers: 0,
+        pendingRequests: 0,
+        totalModules: 0,
+        totalTests: 0,
+        activeTests: 0,
+        completedTests: 0
       });
-
-      setPendingRequests(Array.isArray(pending) ? pending : []);
+      setPendingRequests([]);
     } finally {
       setLoading(false);
     }
@@ -90,22 +89,24 @@ const AdminDashboard: React.FC = () => {
   const handleApproveUser = async (id: string) => {
     try {
       await adminAPI.approveUser(id, 'student');
+      showSuccess('User approved successfully!');
       // Reload data after approval
       await loadDashboardData();
     } catch (error) {
       console.error('Error approving user:', error);
-      alert('Failed to approve user. Please check server connection.');
+      showError('Failed to approve user. Please check server connection.');
     }
   };
 
   const handleRejectUser = async (id: string) => {
     try {
       await adminAPI.rejectUser(id, 'Application rejected');
+      showSuccess('User rejected successfully.');
       // Reload data after rejection
       await loadDashboardData();
     } catch (error) {
       console.error('Error rejecting user:', error);
-      alert('Failed to reject user. Please check server connection.');
+      showError('Failed to reject user. Please check server connection.');
     }
   };
 
@@ -300,46 +301,6 @@ const AdminDashboard: React.FC = () => {
                   No pending requests
                 </p>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activities */}
-        <div className="px-4 sm:px-0 mt-8">
-          <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-                Recent Activities
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0 h-2 w-2 rounded-full bg-green-400"></div>
-                  <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
-                    New test submission received
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500">
-                    5 min ago
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0 h-2 w-2 rounded-full bg-blue-400"></div>
-                  <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
-                    Module assigned to students
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500">
-                    1 hour ago
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0 h-2 w-2 rounded-full bg-purple-400"></div>
-                  <div className="flex-1 text-sm text-gray-600 dark:text-gray-400">
-                    New user registration
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-500">
-                    2 hours ago
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

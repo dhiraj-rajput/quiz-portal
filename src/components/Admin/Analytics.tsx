@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Users,
   FileText,
-  BarChart3,
   TrendingUp,
   CheckCircle,
   XCircle,
   Search,
   Eye,
-  Award,
-  UserCheck,
 } from 'lucide-react';
 import { adminAPI, testAPI } from '../../utils/api';
 
@@ -82,43 +78,6 @@ interface TestAssignment {
   createdAt: string;
 }
 
-interface DashboardStats {
-  users: {
-    total: number;
-    students: number;
-    admins: number;
-    activeToday: number;
-    newThisWeek: number;
-  };
-  tests: {
-    total: number;
-    active: number;
-    completed: number;
-    averageScore: number;
-    totalAttempts: number;
-  };
-  modules: {
-    total: number;
-    active: number;
-    totalAssignments: number;
-    completionRate: number;
-  };
-  performance: {
-    topPerformers: Array<{
-      userId: string;
-      name: string;
-      averageScore: number;
-      testsCompleted: number;
-    }>;
-    recentActivity: Array<{
-      type: 'test_completed' | 'module_assigned' | 'user_registered';
-      description: string;
-      timestamp: Date;
-      userId?: string;
-    }>;
-  };
-}
-
 interface TestWithResults {
   test: TestAssignment['testId'];
   assignments: TestAssignment[];
@@ -130,11 +89,9 @@ interface TestWithResults {
 const Analytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [testAnalytics, setTestAnalytics] = useState<TestWithResults[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTest, setSelectedTest] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'dashboard' | 'tests'>('dashboard');
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
 
@@ -146,10 +103,6 @@ const Analytics: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Load dashboard stats
-      const statsResponse = await adminAPI.getDashboardStats();
-      setDashboardStats(statsResponse.data);
 
       // Get all test assignments
       const assignmentsResponse = await adminAPI.getTestAssignments(1, 100);
@@ -220,75 +173,11 @@ const Analytics: React.FC = () => {
     }
   };
 
-  const getOverallStats = () => {
-    if (!dashboardStats) {
-      return {
-        totalTests: 0,
-        totalAssignments: 0,
-        totalResults: 0,
-        overallCompletionRate: 0,
-        overallAverageScore: 0,
-      };
-    }
-
-    const totalAssignments = testAnalytics.reduce((sum, ta) => sum + ta.assignments.length, 0);
-    const totalResults = testAnalytics.reduce((sum, ta) => sum + ta.results.length, 0);
-    const overallCompletionRate = totalAssignments > 0 ? Math.min((totalResults / totalAssignments) * 100, 100) : 0;
-
-    return {
-      totalTests: dashboardStats.tests.total,
-      totalAssignments,
-      totalResults: dashboardStats.tests.completed,
-      overallCompletionRate: dashboardStats.tests.completed > 0 ? overallCompletionRate : 0,
-      overallAverageScore: dashboardStats.tests.averageScore,
-    };
-  };
-
   const filteredTests = testAnalytics.filter(ta => {
     if (selectedTest !== 'all' && ta.test._id !== selectedTest) return false;
     if (searchTerm && !ta.test.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
-
-  const stats = getOverallStats();
-
-  const StatCard: React.FC<{
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: string;
-    change?: string;
-  }> = ({ title, value, icon, color, change }) => (
-    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
-      <div className="p-5">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <div className={`${color} rounded-md p-3`}>
-              {icon}
-            </div>
-          </div>
-          <div className="ml-5 w-0 flex-1">
-            <dl>
-              <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
-                {title}
-              </dt>
-              <dd className="flex items-baseline">
-                <div className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {value}
-                </div>
-                {change && (
-                  <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
-                    <TrendingUp className="self-center flex-shrink-0 h-4 w-4" />
-                    <span className="ml-1">{change}</span>
-                  </div>
-                )}
-              </dd>
-            </dl>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const TestAnalyticsCard: React.FC<{ testAnalytics: TestWithResults }> = ({ testAnalytics: ta }) => {
     const [showDetails, setShowDetails] = useState(false);
@@ -298,113 +187,113 @@ const Analytics: React.FC = () => {
     const incompleteAssignments = ta.assignments.filter(a => !completedStudentIds.has(a.assignedTo._id));
 
     return (
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+      <div className="test-card">
+        <div className="test-card-header">
+          <div className="test-card-header-row">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              <h3 className="test-card-title">
                 {ta.test.title}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="test-card-description">
                 {ta.test.totalQuestions} questions • {ta.test.timeLimit} minutes
               </p>
             </div>
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="flex items-center px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md"
+              className="test-card-toggle-button"
             >
-              <Eye className="h-4 w-4 mr-1" />
+              <Eye className="test-card-toggle-icon" />
               {showDetails ? 'Hide' : 'View'} Details
             </button>
           </div>
         </div>
 
-        <div className="px-6 py-4">
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="test-card-body">
+          <div className="test-stats-grid">
+            <div className="test-stat-item">
+              <div className="test-stat-value">
                 {ta.assignments.length}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="test-stat-label">
                 Assigned
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+            <div className="test-stat-item">
+              <div className="test-stat-value text-green-600">
                 {ta.results.length}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="test-stat-label">
                 Completed
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
+            <div className="test-stat-item">
+              <div className="test-stat-value text-blue-600">
                 {ta.completionRate.toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="test-stat-label">
                 Completion Rate
               </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+            <div className="test-stat-item">
+              <div className="test-stat-value text-purple-600">
                 {ta.averageScore.toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="test-stat-label">
                 Average Score
               </div>
             </div>
           </div>
 
           {showDetails && (
-            <div className="space-y-4">
+            <div className="results-table-container">
               {/* Completed Tests */}
               {ta.results.length > 0 && (
                 <div>
-                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
+                  <h4 className="results-section-title">
                     Completed Tests ({ta.results.length})
                   </h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
+                  <div className="results-table-wrapper">
+                    <table className="results-table">
+                      <thead className="results-table-header">
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Student
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Score
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Completed At
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Time Spent
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      <tbody className="results-table-body">
                         {ta.results.map((result) => (
-                          <tr key={result._id}>
-                            <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                          <tr key={result._id} className="results-table-row">
+                            <td className="results-table-cell">
                               {result.userId.firstName} {result.userId.lastName}
                             </td>
                             <td className="px-4 py-2">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              <span className={`score-badge ${
                                 result.percentage >= 80 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  ? 'score-badge-excellent'
                                   : result.percentage >= 60
-                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  ? 'score-badge-good'
+                                  : 'score-badge-poor'
                               }`}>
                                 {result.percentage.toFixed(1)}%
                               </span>
                             </td>
-                            <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            <td className="results-table-cell-secondary">
                               {new Date(result.submittedAt).toLocaleDateString()}
                             </td>
-                            <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            <td className="results-table-cell-secondary">
                               {Math.round(result.timeSpent / 60)} min
                             </td>
                             <td className="px-4 py-2">
@@ -413,7 +302,7 @@ const Analytics: React.FC = () => {
                                   setSelectedResult(result);
                                   setShowResultModal(true);
                                 }}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                className="action-button"
                               >
                                 View Details
                               </button>
@@ -429,23 +318,23 @@ const Analytics: React.FC = () => {
               {/* Incomplete Assignments */}
               {incompleteAssignments.length > 0 && (
                 <div>
-                  <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
+                  <h4 className="results-section-title">
                     Pending Assignments ({incompleteAssignments.length})
                   </h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
+                  <div className="results-table-wrapper">
+                    <table className="results-table">
+                      <thead className="results-table-header">
                         <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Student
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Assigned Date
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Due Date
                           </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                          <th className="results-table-header-cell">
                             Status
                           </th>
                         </tr>
@@ -490,10 +379,10 @@ const Analytics: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading analytics...</p>
+      <div className="loading-container">
+        <div className="loading-content">
+          <div className="loading-spinner"></div>
+          <p className="loading-text">Loading analytics...</p>
         </div>
       </div>
     );
@@ -501,13 +390,13 @@ const Analytics: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <XCircle className="h-12 w-12 text-red-600 mx-auto" />
-          <p className="mt-4 text-gray-600 dark:text-gray-400">{error}</p>
+      <div className="error-container">
+        <div className="error-content">
+          <XCircle className="error-icon" />
+          <p className="loading-text">{error}</p>
           <button 
             onClick={loadAnalyticsData}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="error-button"
           >
             Retry
           </button>
@@ -517,262 +406,96 @@ const Analytics: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">
-                Monitor system performance and student progress
-              </p>
+    <div className="analytics-container">
+        <div className="analytics-content">
+          <div className="analytics-header">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="analytics-title">Test Analytics</h1>
+                <p className="analytics-subtitle">
+                  Monitor test performance and student progress
+                </p>
+              </div>
             </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setViewMode('dashboard')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  viewMode === 'dashboard'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
-                }`}
-              >
-                Dashboard Overview
-              </button>
-              <button
-                onClick={() => setViewMode('tests')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  viewMode === 'tests'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
-                }`}
-              >
-                Test Analytics
-              </button>
+          </div>
+
+        {/* Filters */}
+        <div className="analytics-controls">
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+            <div className="analytics-controls-grid">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search tests..."
+                    className="search-input pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <select
+                  className="filter-select"
+                  value={selectedTest}
+                  onChange={(e) => setSelectedTest(e.target.value)}
+                >
+                  <option value="all">All Tests</option>
+                  {testAnalytics.map((ta) => (
+                    <option key={ta.test._id} value={ta.test._id}>
+                      {ta.test.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        {viewMode === 'dashboard' && dashboardStats ? (
-          <>
-            {/* Main Dashboard Statistics */}
-            <div className="px-4 sm:px-0 mb-8">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                  title="Total Students"
-                  value={dashboardStats.users.students}
-                  icon={<Users className="h-6 w-6 text-white" />}
-                  color="bg-blue-500"
-                  change={`+${dashboardStats.users.newThisWeek} this week`}
-                />
-                <StatCard
-                  title="Active Today"
-                  value={dashboardStats.users.activeToday}
-                  icon={<UserCheck className="h-6 w-6 text-white" />}
-                  color="bg-green-500"
-                />
-                <StatCard
-                  title="Total Modules"
-                  value={dashboardStats.modules.total}
-                  icon={<FileText className="h-6 w-6 text-white" />}
-                  color="bg-purple-500"
-                />
-                <StatCard
-                  title="Total Tests"
-                  value={dashboardStats.tests.total}
-                  icon={<BarChart3 className="h-6 w-6 text-white" />}
-                  color="bg-indigo-500"
-                />
-              </div>
+        {/* Test Analytics Cards */}
+        <div className="test-analytics-grid">
+          {testAnalytics.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No test assignments found
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Create some tests and assign them to students to see analytics here.
+              </p>
             </div>
-
-            {/* Performance Metrics */}
-            <div className="px-4 sm:px-0 mb-8">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <StatCard
-                  title="Tests Completed"
-                  value={dashboardStats.tests.completed}
-                  icon={<CheckCircle className="h-6 w-6 text-white" />}
-                  color="bg-yellow-500"
-                />
-                <StatCard
-                  title="Average Score"
-                  value={`${dashboardStats.tests.averageScore}%`}
-                  icon={<Award className="h-6 w-6 text-white" />}
-                  color="bg-emerald-500"
-                />
-                <StatCard
-                  title="Completion Rate"
-                  value={`${dashboardStats.modules.completionRate}%`}
-                  icon={<TrendingUp className="h-6 w-6 text-white" />}
-                  color="bg-red-500"
-                />
-              </div>
+          ) : filteredTests.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No matching tests found
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Try adjusting your filters to see more results.
+              </p>
             </div>
-
-            {/* Top Performers */}
-            {dashboardStats.performance.topPerformers.length > 0 && (
-              <div className="px-4 sm:px-0">
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-                  <div className="px-4 py-5 sm:p-6">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-                      Top Performers
-                    </h3>
-                    <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                      <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Student
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Average Score
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Tests Completed
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {dashboardStats.performance.topPerformers.map((performer, index) => (
-                            <tr key={index}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {performer.name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                  {performer.averageScore}%
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {performer.testsCompleted}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {/* Test Analytics View */}
-            <div className="px-4 sm:px-0 mb-8">
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-                <StatCard
-                  title="Total Tests"
-                  value={stats.totalTests}
-                  icon={<FileText className="h-6 w-6 text-white" />}
-                  color="bg-blue-500"
-                />
-                <StatCard
-                  title="Total Assignments"
-                  value={stats.totalAssignments}
-                  icon={<Users className="h-6 w-6 text-white" />}
-                  color="bg-green-500"
-                />
-                <StatCard
-                  title="Tests Completed"
-                  value={stats.totalResults}
-                  icon={<CheckCircle className="h-6 w-6 text-white" />}
-                  color="bg-purple-500"
-                />
-                <StatCard
-                  title="Completion Rate"
-                  value={`${stats.overallCompletionRate.toFixed(1)}%`}
-                  icon={<BarChart3 className="h-6 w-6 text-white" />}
-                  color="bg-indigo-500"
-                />
-                <StatCard
-                  title="Average Score"
-                  value={`${stats.overallAverageScore.toFixed(1)}%`}
-                  icon={<TrendingUp className="h-6 w-6 text-white" />}
-                  color="bg-yellow-500"
-                />
-              </div>
+          ) : (
+            <div className="test-analytics-grid-layout">
+              {filteredTests.map((ta) => (
+                <TestAnalyticsCard key={ta.test._id} testAnalytics={ta} />
+              ))}
             </div>
-
-            {/* Filters */}
-            <div className="px-4 sm:px-0 mb-6">
-              <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search tests..."
-                        className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <select
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      value={selectedTest}
-                      onChange={(e) => setSelectedTest(e.target.value)}
-                    >
-                      <option value="all">All Tests</option>
-                      {testAnalytics.map((ta) => (
-                        <option key={ta.test._id} value={ta.test._id}>
-                          {ta.test.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Test Analytics Cards */}
-            <div className="px-4 sm:px-0">
-              {testAnalytics.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-8 text-center">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    No test assignments found
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400">
-                    Create some tests and assign them to students to see analytics here.
-                  </p>
-                </div>
-              ) : filteredTests.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-8 text-center">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    No matching tests found
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400">
-                    Try adjusting your filters to see more results.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {filteredTests.map((ta) => (
-                    <TestAnalyticsCard key={ta.test._id} testAnalytics={ta} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Result Detail Modal */}
       {showResultModal && selectedResult && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Test Results - {selectedResult.userId.firstName} {selectedResult.userId.lastName}
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3 className="modal-title">
+                Test Results - {selectedResult!.userId.firstName} {selectedResult!.userId.lastName}
               </h3>
               <button
                 onClick={() => setShowResultModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="modal-close-button"
               >
                 <XCircle className="h-6 w-6" />
               </button>
@@ -780,40 +503,40 @@ const Analytics: React.FC = () => {
 
             <div className="mb-6">
               <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {selectedResult.percentage.toFixed(1)}%
+                <div className="test-stat-item">
+                  <div className="test-stat-value text-blue-600">
+                    {selectedResult!.percentage.toFixed(1)}%
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Score</div>
+                  <div className="test-stat-label">Score</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {selectedResult.correctAnswers}
+                <div className="test-stat-item">
+                  <div className="test-stat-value text-green-600">
+                    {selectedResult!.correctAnswers}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Correct</div>
+                  <div className="test-stat-label">Correct</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {selectedResult.totalQuestions - selectedResult.correctAnswers}
+                <div className="test-stat-item">
+                  <div className="test-stat-value text-red-600">
+                    {selectedResult!.totalQuestions - selectedResult!.correctAnswers}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Incorrect</div>
+                  <div className="test-stat-label">Incorrect</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {Math.round(selectedResult.timeSpent / 60)}
+                <div className="test-stat-item">
+                  <div className="test-stat-value text-purple-600">
+                    {Math.round(selectedResult!.timeSpent / 60)}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Minutes</div>
+                  <div className="test-stat-label">Minutes</div>
                 </div>
               </div>
             </div>
 
-            <div className="max-h-96 overflow-y-auto">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">
+            <div className="modal-content max-h-96 overflow-y-auto">
+              <h4 className="results-section-title">
                 Question-by-Question Analysis
               </h4>
               <div className="space-y-4">
-                {selectedResult.testId?.questions?.map((question, qIndex) => {
-                  const answer = selectedResult.answers.find(a => a.questionId === question._id);
+                {selectedResult!.testId?.questions?.map((question, qIndex) => {
+                  const answer = selectedResult!.answers.find(a => a.questionId === question._id);
                   if (!answer) return null;
 
                   return (
@@ -822,10 +545,10 @@ const Analytics: React.FC = () => {
                         <h5 className="font-medium text-gray-900 dark:text-white">
                           Question {qIndex + 1}
                         </h5>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        <span className={`score-badge ${
                           answer.isCorrect 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            ? 'score-badge-excellent'
+                            : 'score-badge-poor'
                         }`}>
                           {answer.isCorrect ? 'Correct' : 'Incorrect'}
                         </span>

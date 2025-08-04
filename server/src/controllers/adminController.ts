@@ -3,6 +3,7 @@ import User from '../models/User';
 import PendingRequest from '../models/PendingRequest';
 import { AppError } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { NotificationService } from '../utils/notificationService';
 
 // @desc    Get admin dashboard statistics
 // @route   GET /api/admin/dashboard
@@ -21,12 +22,6 @@ export const getDashboard = async (_req: AuthenticatedRequest, res: Response, ne
       .limit(10)
       .select('firstName lastName email admissionDate createdAt');
 
-    // Get recent users (last 10)
-    const recentUsers = await User.find({ status: 'active' })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select('firstName lastName email role admissionDate createdAt');
-
     res.status(200).json({
       success: true,
       data: {
@@ -37,10 +32,7 @@ export const getDashboard = async (_req: AuthenticatedRequest, res: Response, ne
           totalAdmins: totalAdminsCount,
           totalUsers: activeUsersCount,
         },
-        recentActivity: {
-          pendingRequests: recentPendingRequests,
-          recentUsers: recentUsers,
-        },
+        recentPendingRequests,
       },
     });
   } catch (error) {
@@ -114,8 +106,6 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
     const { id } = req.params;
     const { role } = req.body;
 
-    console.log(`Attempting to approve user with ID: ${id}, role: ${role}`);
-
     // Validate role
     if (!role || !['admin', 'student'].includes(role)) {
       return next(new AppError('Valid role (admin or student) is required', 400));
@@ -123,19 +113,22 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
 
     // Find the pending request (include password field)
     const pendingRequest = await PendingRequest.findById(id).select('+password');
-    console.log(`Pending request found:`, pendingRequest ? 'Yes' : 'No');
     
     if (!pendingRequest) {
       return next(new AppError('Pending request not found or may have already been processed', 404));
     }
 
-    // Check if user with same email already exists
-    const existingUser = await User.findOne({ email: pendingRequest.email });
+    // Check if user with same email or phone already exists
+    const existingUser = await User.findOne({ 
+      $or: [
+        { email: pendingRequest.email },
+        { phoneNumber: pendingRequest.phoneNumber }
+      ]
+    });
     if (existingUser) {
-      console.log(`User already exists with email: ${pendingRequest.email}`);
       // Remove the pending request since user already exists
       await PendingRequest.findByIdAndDelete(id);
-      return next(new AppError('User with this email already exists', 400));
+      return next(new AppError('User with this email or phone number already exists', 400));
     }
 
     // Create new user from pending request
@@ -143,6 +136,8 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
       firstName: pendingRequest.firstName,
       lastName: pendingRequest.lastName,
       email: pendingRequest.email,
+      phoneNumber: pendingRequest.phoneNumber,
+      phoneVerified: true, // Already verified during registration
       password: pendingRequest.password, // Password is already hashed in PendingRequest
       role: role,
       status: 'active',
@@ -159,7 +154,6 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
       const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
       
       await emailService.sendApprovalNotification(newUser, adminName);
-      console.log(`Approval email sent to ${newUser.email}`);
     } catch (emailError) {
       console.error('Failed to send approval email:', emailError);
       // Don't fail the request if email fails
@@ -176,6 +170,15 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
       });
     } catch (wsError) {
       console.error('Failed to send WebSocket notification:', wsError);
+    }
+
+    // Send notification to the approved user
+    try {
+      const adminUser = await User.findById(req.user!.id);
+      const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+      await NotificationService.notifyUserApproval(newUser._id.toString(), adminName);
+    } catch (notificationError) {
+      console.error('Failed to send approval notification:', notificationError);
     }
 
     res.status(200).json({
@@ -232,7 +235,6 @@ export const rejectUser = async (req: AuthenticatedRequest, res: Response, next:
         (reason as string) || 'Registration requirements not met',
         adminName
       );
-      console.log(`Rejection email sent to ${userEmail}`);
     } catch (emailError) {
       console.error('Failed to send rejection email:', emailError);
       // Don't fail the request if email fails
@@ -297,7 +299,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .select('firstName lastName email role status admissionDate createdAt');
+      .select('firstName lastName email phoneNumber role status admissionDate createdAt');
 
     // Get total count for pagination
     const totalCount = await User.countDocuments(query);
@@ -321,13 +323,41 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
   }
 };
 
-// @desc    Update user role or status
+// @desc    Get user by ID
+// @route   GET /api/admin/users/:id
+// @access  Private (Admin only)
+export const getUserById = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select('-password');
+    
+    if (!user) {
+      res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update user details
 // @route   PATCH /api/admin/users/:id
 // @access  Private (Admin only)
 export const updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const { role, status } = req.body;
+    const { firstName, lastName, email, phoneNumber, role, status, admissionDate, password } = req.body;
 
     // Find the user
     const user = await User.findById(id);
@@ -337,10 +367,28 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
 
     // Prevent admin from changing their own role or deactivating themselves
     if (user._id.toString() === req.user!.id) {
-      return next(new AppError('You cannot modify your own account', 400));
+      if (role && role !== user.role) {
+        return next(new AppError('You cannot change your own role', 400));
+      }
+      if (status && status === 'inactive') {
+        return next(new AppError('You cannot deactivate your own account', 400));
+      }
+    }
+
+    // Check if email is being changed and if it's already in use
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: id } });
+      if (existingUser) {
+        return next(new AppError('Email is already in use', 400));
+      }
+      user.email = email;
     }
 
     // Update fields if provided
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+    
     if (role && ['admin', 'student'].includes(role)) {
       user.role = role as 'admin' | 'student';
     }
@@ -349,22 +397,57 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
       user.status = status as 'active' | 'inactive';
     }
 
+    if (admissionDate) {
+      user.admissionDate = new Date(admissionDate);
+    }
+
+    // Update password if provided
+    if (password) {
+      if (password.length < 8) {
+        return next(new AppError('Password must be at least 8 characters long', 400));
+      }
+      user.password = password; // This will be hashed by the pre-save middleware
+      
+      // Notify user about password change
+      try {
+        await NotificationService.notifyPasswordChange(user._id.toString());
+      } catch (notificationError) {
+        console.error('Failed to send password change notification:', notificationError);
+      }
+    }
+
+    // Notify about status change if status was updated
+    if (status && status !== user.status) {
+      try {
+        const adminUser = await User.findById(req.user!.id);
+        const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+        await NotificationService.notifyAccountStatusChange(user._id.toString(), status, adminName);
+      } catch (notificationError) {
+        console.error('Failed to send status change notification:', notificationError);
+      }
+    }
+
     await user.save();
+
+    // Return user data without password
+    const userResponse = {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      status: user.status,
+      admissionDate: user.admissionDate,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
 
     res.status(200).json({
       success: true,
       message: 'User updated successfully',
       data: {
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          admissionDate: user.admissionDate,
-          updatedAt: user.updatedAt,
-        },
+        user: userResponse,
       },
     });
   } catch (error) {
@@ -377,10 +460,10 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
 // @access  Private (Admin only)
 export const createUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { firstName, lastName, email, password, role, admissionDate } = req.body;
+    const { firstName, lastName, email, phoneNumber, password, role, admissionDate } = req.body;
 
     // Validate required fields
-    if (!firstName || !lastName || !email || !password || !role) {
+    if (!firstName || !lastName || !email || !phoneNumber || !password || !role) {
       return next(new AppError('All fields are required', 400));
     }
 
@@ -389,10 +472,16 @@ export const createUser = async (req: AuthenticatedRequest, res: Response, next:
       return next(new AppError('Valid role (admin or student) is required', 400));
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    // Check if user already exists with email
+    const existingUserEmail = await User.findOne({ email });
+    if (existingUserEmail) {
       return next(new AppError('User with this email already exists', 400));
+    }
+
+    // Check if user already exists with phone number
+    const existingUserPhone = await User.findOne({ phoneNumber });
+    if (existingUserPhone) {
+      return next(new AppError('User with this phone number already exists', 400));
     }
 
     // Create new user
@@ -400,11 +489,21 @@ export const createUser = async (req: AuthenticatedRequest, res: Response, next:
       firstName,
       lastName,
       email,
+      phoneNumber,
       password, // Will be hashed by the pre-save middleware
       role,
       status: 'active',
       admissionDate: admissionDate || new Date(),
     });
+
+    // Send welcome notification to the new user
+    try {
+      const adminUser = await User.findById(req.user!.id);
+      const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}` : 'Admin';
+      await NotificationService.notifyUserCreation(newUser._id.toString(), adminName);
+    } catch (notificationError) {
+      console.error('Failed to send user creation notification:', notificationError);
+    }
 
     res.status(201).json({
       success: true,
@@ -415,6 +514,7 @@ export const createUser = async (req: AuthenticatedRequest, res: Response, next:
           firstName: newUser.firstName,
           lastName: newUser.lastName,
           email: newUser.email,
+          phoneNumber: newUser.phoneNumber,
           role: newUser.role,
           status: newUser.status,
           admissionDate: newUser.admissionDate,

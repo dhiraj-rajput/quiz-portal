@@ -6,6 +6,7 @@ export interface IPendingRequest extends Document {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber: string;
   password: string;
   admissionDate: Date;
   status: 'pending';
@@ -38,6 +39,20 @@ const pendingRequestSchema = new Schema<IPendingRequest>(
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
         'Please provide a valid email address',
       ],
+    },
+    phoneNumber: {
+      type: String,
+      required: [true, 'Phone number is required'],
+      unique: true,
+      trim: true,
+      validate: {
+        validator: function (value: string) {
+          // Remove any non-digit characters for validation
+          const cleaned = value.replace(/\D/g, '');
+          return cleaned.length >= 10 && cleaned.length <= 15;
+        },
+        message: 'Please provide a valid phone number',
+      },
     },
     password: {
       type: String,

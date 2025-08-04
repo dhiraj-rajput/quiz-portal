@@ -9,6 +9,13 @@
 @import './Results.css';
 @import './Tests.css';
 @import './Dashboard.css';
+@import './Analytics.css';
+@import './ModuleAssignment.css';
+@import './ModuleManagement.css';
+@import './TestAssignment.css';
+@import './TestManagement.css';
+@import './UserManagement.css';
+@import './NotificationPage.css';
 
 /* Add any global styles here */
 body {

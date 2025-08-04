@@ -190,6 +190,18 @@ class EmailService {
     });
   }
 
+  // Password reset confirmation notification
+  async sendPasswordResetConfirmation(data: { to: string; userName: string }): Promise<boolean> {
+    const html = this.generatePasswordResetConfirmationTemplate(data);
+    
+    return this.sendEmail({
+      to: data.to,
+      subject: '🔐 Password Reset Successful - Quiz Portal',
+      html,
+      text: `Hi ${data.userName}, your password has been successfully reset. If you did not request this change, please contact support immediately.`,
+    });
+  }
+
   // Email template generators
   private generateApprovalEmailTemplate(data: NotificationData): string {
     return `
@@ -280,6 +292,56 @@ class EmailService {
   private generateDeadlineReminderEmailTemplate(data: NotificationData, itemType: 'test' | 'module'): string {
     const itemName = itemType === 'test' ? data.testName : data.moduleName;
     return `<p>Hi ${data.userName}, reminder: ${itemName} (${itemType}) is due on ${data.deadline?.toLocaleDateString()}.</p>`;
+  }
+
+  private generatePasswordResetConfirmationTemplate(data: { userName: string }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Password Reset Successful</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #2563eb; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; background: #f9f9f9; }
+          .footer { padding: 10px; text-align: center; font-size: 12px; color: #666; }
+          .alert { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔐 Password Reset Successful</h1>
+          </div>
+          <div class="content">
+            <h2>Hi ${data.userName},</h2>
+            <p>Your password has been successfully reset for your Quiz Portal account.</p>
+            
+            <div class="alert">
+              <strong>⚠️ Security Notice:</strong> If you did not request this password reset, please contact our support team immediately at support@quizportal.com or through your administrator.
+            </div>
+            
+            <p>For your security, we recommend:</p>
+            <ul>
+              <li>Use a strong, unique password</li>
+              <li>Don't share your password with anyone</li>
+              <li>Log out from shared computers</li>
+            </ul>
+            
+            <p>You can now log in with your new password.</p>
+            
+            <p>Best regards,<br>Quiz Portal Security Team</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated security notification. Please do not reply to this email.</p>
+            <p>If you need assistance, contact your administrator.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 }
 

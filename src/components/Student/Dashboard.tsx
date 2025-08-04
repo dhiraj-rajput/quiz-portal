@@ -83,18 +83,6 @@ const StudentDashboard: React.FC = () => {
     ? Math.min(Math.round((stats.completedTests / stats.assignedTests) * 100), 100)
     : 0;
 
-  // Debug logging
-  console.log('Dashboard Stats:', {
-    assignedModules: stats.assignedModules,
-    completedModules,
-    moduleCompletionPercentage,
-    assignedTests: stats.assignedTests,
-    completedTests: stats.completedTests,
-    testCompletionPercentage,
-    upcomingDeadlinesCount: upcomingDeadlines.length,
-    rawDashboardData: dashboardData
-  });
-
   const averageScore = dashboardData?.recentActivity?.recentTestResults?.length > 0 
     ? Math.round(dashboardData.recentActivity.recentTestResults.reduce((sum: number, result: any) => sum + result.percentage, 0) / dashboardData.recentActivity.recentTestResults.length)
     : 0;

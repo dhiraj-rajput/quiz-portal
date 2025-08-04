@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Edit, Trash2, Users, Search, Clock } from 'lucide-react';
 import { testAPI } from '../../utils/api';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface Test {
   _id: string;
@@ -29,6 +30,7 @@ interface Test {
 }
 
 const TestManagement: React.FC = () => {
+  const { showSuccess, showError } = useNotifications();
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,7 +78,7 @@ const TestManagement: React.FC = () => {
       for (const question of newTest.questions) {
         const correctCount = question.options.filter(opt => opt.isCorrect).length;
         if (correctCount !== 1) {
-          alert('Each question must have exactly one correct answer');
+          showError('Each question must have exactly one correct answer');
           return;
         }
       }
@@ -111,10 +113,10 @@ const TestManagement: React.FC = () => {
       setNewTest(freshState);
       
       await loadTests();
-      alert(`Test ${isPublished ? 'created and published' : 'saved as draft'} successfully!`);
+      showSuccess(`Test ${isPublished ? 'created and published' : 'saved as draft'} successfully!`);
     } catch (error) {
       console.error('Error creating test:', error);
-      alert('Failed to create test. Please try again.');
+      showError('Failed to create test. Please try again.');
     }
   };
 
@@ -135,10 +137,10 @@ const TestManagement: React.FC = () => {
       try {
         await testAPI.updateTest(id, { isPublished: !currentStatus });
         await loadTests();
-        alert(`Test ${action}ed successfully!`);
+        showSuccess(`Test ${action}ed successfully!`);
       } catch (error) {
         console.error(`Error ${action}ing test:`, error);
-        alert(`Failed to ${action} test. Please try again.`);
+        showError(`Failed to ${action} test. Please try again.`);
       }
     }
   };
@@ -169,7 +171,7 @@ const TestManagement: React.FC = () => {
       for (const question of newTest.questions) {
         const correctCount = question.options.filter(opt => opt.isCorrect).length;
         if (correctCount !== 1) {
-          alert('Each question must have exactly one correct answer');
+          showError('Each question must have exactly one correct answer');
           return;
         }
       }
@@ -190,10 +192,10 @@ const TestManagement: React.FC = () => {
       resetForm();
       
       await loadTests();
-      alert(`Test updated successfully!`);
+      showSuccess(`Test updated successfully!`);
     } catch (error) {
       console.error('Error updating test:', error);
-      alert('Failed to update test. Please try again.');
+      showError('Failed to update test. Please try again.');
     }
   };
 

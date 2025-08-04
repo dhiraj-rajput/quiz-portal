@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Clock, FileText, ExternalLink } from 'lucide-react';
 import { studentAPI } from '../../utils/api';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface Module {
   _id: string;
@@ -22,6 +23,7 @@ const StudentModules: React.FC = () => {
   const [assignments, setAssignments] = useState<ModuleAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { showSuccess, showError } = useNotifications();
 
   useEffect(() => {
     loadAssignments();
@@ -34,11 +36,9 @@ const StudentModules: React.FC = () => {
       if (response.success && response.data) {
         setAssignments(response.data.modules || []);
       } else {
-        console.error('API call succeeded but no data:', response);
         setError('No module assignments found');
       }
     } catch (err) {
-      console.error('Error loading module assignments:', err);
       setError('Failed to load module assignments');
     } finally {
       setLoading(false);
@@ -55,15 +55,14 @@ const StudentModules: React.FC = () => {
     try {
       const response = await studentAPI.markModuleComplete(assignmentId);
       if (response.success) {
-        alert('Module marked as complete!');
+        showSuccess('Module marked as complete!');
         // Reload assignments to update the UI
         await loadAssignments();
       } else {
-        alert('Failed to mark module as complete');
+        showError('Failed to mark module as complete');
       }
     } catch (error) {
-      console.error('Error marking module as complete:', error);
-      alert('Error marking module as complete. Please try again.');
+      showError('Error marking module as complete. Please try again.');
     }
   };
 

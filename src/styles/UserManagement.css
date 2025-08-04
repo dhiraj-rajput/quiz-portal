@@ -1,0 +1,386 @@
+/* User Management Component Styles */
+
+/* Main Container */
+.user-management-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+}
+
+.user-management-content {
+  @apply max-w-7xl mx-auto py-6 sm:px-6 lg:px-8;
+}
+
+/* Header Section */
+.user-management-header {
+  @apply px-4 py-6 sm:px-0;
+}
+
+.user-management-header-content {
+  @apply flex justify-between items-center;
+}
+
+.user-management-title-section {
+  /* Empty class for grouping */
+}
+
+.user-management-title {
+  @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+.user-management-subtitle {
+  @apply mt-2 text-gray-600 dark:text-gray-400;
+}
+
+.create-user-button {
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+}
+
+.create-user-button-icon {
+  @apply h-4 w-4 mr-2;
+}
+
+/* Tabs Section */
+.user-management-tabs {
+  @apply px-4 sm:px-0 mb-6;
+}
+
+.tabs-container {
+  @apply border-b border-gray-200 dark:border-gray-700;
+}
+
+.tabs-nav {
+  @apply -mb-px flex space-x-8;
+}
+
+.tab-button {
+  @apply py-2 px-1 border-b-2 font-medium text-sm;
+}
+
+.tab-button-active {
+  @apply border-indigo-500 text-indigo-600 dark:text-indigo-400;
+}
+
+.tab-button-inactive {
+  @apply border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600;
+}
+
+/* Search and Filter Section */
+.user-management-controls {
+  @apply px-4 sm:px-0 mb-6;
+}
+
+.controls-grid {
+  @apply flex flex-col sm:flex-row gap-4;
+}
+
+.search-container {
+  @apply relative flex-1;
+}
+
+.search-icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400;
+}
+
+.search-input {
+  @apply pl-10 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500;
+}
+
+.filter-container {
+  @apply sm:w-48;
+}
+
+.filter-select {
+  @apply w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500;
+}
+
+/* Content Section */
+.user-management-main {
+  @apply px-4 sm:px-0;
+}
+
+/* Users Table */
+.users-table-container {
+  @apply bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden;
+}
+
+.users-table-wrapper {
+  @apply overflow-x-auto;
+}
+
+.users-table {
+  @apply min-w-full divide-y divide-gray-200 dark:divide-gray-600;
+}
+
+.users-table-header {
+  @apply bg-gray-50 dark:bg-gray-700;
+}
+
+.users-table-header-row {
+  /* Base row class */
+}
+
+.users-table-header-cell {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+}
+
+.users-table-body {
+  @apply bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600;
+}
+
+.users-table-row {
+  @apply hover:bg-gray-50 dark:hover:bg-gray-700;
+}
+
+.users-table-cell {
+  @apply px-6 py-4 whitespace-nowrap;
+}
+
+.user-name-cell {
+  @apply text-sm font-medium text-gray-900 dark:text-white;
+}
+
+.user-email-cell {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.user-role-cell {
+  /* Base cell class */
+}
+
+.user-role-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.user-role-admin {
+  @apply bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200;
+}
+
+.user-role-student {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+
+.user-status-cell {
+  /* Base cell class */
+}
+
+.user-status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.user-status-active {
+  @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.user-status-inactive {
+  @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+.user-date-cell {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.user-actions-cell {
+  @apply text-right text-sm font-medium;
+}
+
+.user-actions-dropdown {
+  @apply relative inline-block text-left;
+}
+
+.user-actions-button {
+  @apply inline-flex justify-center w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600;
+}
+
+.user-actions-menu {
+  @apply origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 z-10;
+}
+
+.user-actions-menu-item {
+  @apply block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600;
+}
+
+.user-actions-menu-item-danger {
+  @apply block px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20;
+}
+
+/* Pending Requests Table */
+.pending-table-container {
+  @apply bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden;
+}
+
+.pending-table-wrapper {
+  @apply overflow-x-auto;
+}
+
+.pending-table {
+  @apply min-w-full divide-y divide-gray-200 dark:divide-gray-600;
+}
+
+.pending-table-header {
+  @apply bg-gray-50 dark:bg-gray-700;
+}
+
+.pending-table-header-cell {
+  @apply px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider;
+}
+
+.pending-table-body {
+  @apply bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600;
+}
+
+.pending-table-row {
+  @apply hover:bg-gray-50 dark:hover:bg-gray-700;
+}
+
+.pending-table-cell {
+  @apply px-6 py-4 whitespace-nowrap;
+}
+
+.pending-name-cell {
+  @apply text-sm font-medium text-gray-900 dark:text-white;
+}
+
+.pending-email-cell {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.pending-date-cell {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+.pending-actions-cell {
+  @apply text-right;
+}
+
+.pending-actions-container {
+  @apply flex justify-end space-x-2;
+}
+
+.pending-approve-button {
+  @apply inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500;
+}
+
+.pending-reject-button {
+  @apply inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500;
+}
+
+/* Empty States */
+.users-empty-state {
+  @apply text-center py-12;
+}
+
+.pending-empty-state {
+  @apply text-center py-12;
+}
+
+.empty-state-icon {
+  @apply mx-auto h-12 w-12 text-gray-400;
+}
+
+.empty-state-title {
+  @apply mt-4 text-lg font-medium text-gray-900 dark:text-white;
+}
+
+.empty-state-description {
+  @apply mt-2 text-gray-600 dark:text-gray-400;
+}
+
+/* Create User Modal */
+.create-user-modal-overlay {
+  @apply fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50;
+}
+
+.create-user-modal-container {
+  @apply relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800;
+}
+
+.create-user-modal-content {
+  @apply mt-3;
+}
+
+.create-user-modal-header {
+  @apply flex justify-between items-center mb-6;
+}
+
+.create-user-modal-title {
+  @apply text-lg font-medium text-gray-900 dark:text-white;
+}
+
+.create-user-modal-close {
+  @apply text-gray-400 hover:text-gray-600 dark:hover:text-gray-200;
+}
+
+.create-user-form {
+  @apply space-y-4;
+}
+
+.form-group {
+  /* Base form group class */
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white;
+}
+
+.form-select {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white;
+}
+
+.form-input-error {
+  @apply border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500;
+}
+
+.form-error-message {
+  @apply mt-1 text-sm text-red-600 dark:text-red-400;
+}
+
+.create-user-modal-actions {
+  @apply mt-6 flex justify-end space-x-3;
+}
+
+.modal-cancel-button {
+  @apply px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600;
+}
+
+.modal-submit-button {
+  @apply px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+}
+
+/* Loading States */
+.user-management-loading-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center;
+}
+
+.user-management-loading-content {
+  @apply text-center;
+}
+
+.user-management-loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto;
+}
+
+.user-management-loading-text {
+  @apply mt-4 text-gray-600 dark:text-gray-400;
+}
+
+/* Responsive Utilities */
+@media (max-width: 640px) {
+  .users-table-cell {
+    @apply px-4 py-3;
+  }
+  
+  .pending-table-cell {
+    @apply px-4 py-3;
+  }
+  
+  .user-actions-button {
+    @apply px-2 py-1 text-xs;
+  }
+  
+  .pending-actions-container {
+    @apply flex-col space-x-0 space-y-1;
+  }
+}

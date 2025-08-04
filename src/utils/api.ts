@@ -118,6 +118,20 @@ class ApiClient {
     return this.handleResponse<T>(response, makeRequest);
   }
 
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    const makeRequest = () => fetch(`${this.baseURL}${endpoint}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeader(),
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    const response = await makeRequest();
+    return this.handleResponse<T>(response, makeRequest);
+  }
+
   async delete<T>(endpoint: string): Promise<T> {
     const makeRequest = () => fetch(`${this.baseURL}${endpoint}`, {
       method: 'DELETE',
@@ -207,10 +221,14 @@ export const adminAPI = {
     api.get<ApiResponse<{ users: any[]; pagination: any }>>
       (`/admin/users?page=${page}&limit=${limit}&search=${search}&role=${role}`),
 
+  getUserById: (id: string) =>
+    api.get<ApiResponse<{ user: any }>>(`/admin/users/${id}`),
+
   createUser: (userData: {
     firstName: string;
     lastName: string;
     email: string;
+    phoneNumber: string;
     password: string;
     role: string;
     admissionDate: string;
@@ -338,4 +356,33 @@ export const fileAPI = {
 
   downloadModuleFile: (moduleId: string, fileName: string) =>
     `${API_BASE_URL}/files/modules/${moduleId}/${fileName}/download`,
+};
+
+// Notification API endpoints
+export const notificationAPI = {
+  getNotifications: (params?: { read?: boolean; category?: string; page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.read !== undefined) searchParams.append('read', params.read.toString());
+    if (params?.category) searchParams.append('category', params.category);
+    if (params?.page) searchParams.append('page', params.page.toString());
+    if (params?.limit) searchParams.append('limit', params.limit.toString());
+    
+    return api.get<ApiResponse<{ 
+      notifications: any[]; 
+      pagination: any; 
+      unreadCount: number; 
+    }>>(`/notifications?${searchParams}`);
+  },
+
+  markAsRead: (id: string) =>
+    api.patch<ApiResponse>(`/notifications/${id}/read`),
+
+  markAllAsRead: () =>
+    api.patch<ApiResponse>('/notifications/mark-all-read'),
+
+  deleteNotification: (id: string) =>
+    api.delete<ApiResponse>(`/notifications/${id}`),
+
+  deleteAllNotifications: () =>
+    api.delete<ApiResponse>('/notifications'),
 };

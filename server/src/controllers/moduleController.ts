@@ -4,6 +4,7 @@ import ModuleAssignment from '../models/ModuleAssignment';
 import User from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { NotificationService } from '../utils/notificationService';
 
 // Temporary mock for express-validator - TO BE REPLACED
 const validationResult = (_req: any) => ({
@@ -373,6 +374,16 @@ export const assignModule = async (req: AuthenticatedRequest, res: Response, nex
         assignedBy: req.user!.id,
         dueDate: dueDate ? new Date(dueDate) : undefined,
       });
+    }
+
+    // Send notifications to assigned students
+    try {
+      const dueDateObj = dueDate ? new Date(dueDate) : undefined;
+      for (const student of students) {
+        await NotificationService.notifyModuleAssignment(student._id.toString(), module.title, dueDateObj);
+      }
+    } catch (notificationError) {
+      console.error('Failed to send module assignment notifications:', notificationError);
     }
 
     res.status(200).json({

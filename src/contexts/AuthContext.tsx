@@ -22,12 +22,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('AuthContext: Initializing auth...');
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token'); // Legacy compatibility
       const storedUser = localStorage.getItem('currentUser');
-
-      console.log('AuthContext: Token found:', !!token);
-      console.log('AuthContext: Stored user found:', !!storedUser);
 
       if (token && storedUser) {
         try {
@@ -35,25 +31,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const storedData = JSON.parse(storedUser);
           // Check if it's a nested structure {user: {...}} or direct user object
           const userData = storedData.user || storedData;
-          console.log('AuthContext: Setting user from localStorage:', userData);
-          console.log('AuthContext: User role from localStorage:', userData.role);
           setUser(userData); // Set user immediately from storage
           setLoading(false); // Set loading to false immediately to prevent blank screens
           
           // Then verify token is still valid by fetching user profile in background
           const response = await authAPI.getProfile();
           if (response.success && response.data) {
-            console.log('AuthContext: Token validated, updating user data');
-            console.log('AuthContext: Server response data:', response.data);
             // Check if server returns nested structure {user: {...}} or direct user object
             const serverUserData = response.data.user || response.data;
-            console.log('AuthContext: Extracted server user data:', serverUserData);
-            console.log('AuthContext: Server user role:', serverUserData.role);
             // Update with fresh data from server
             setUser(serverUserData);
             localStorage.setItem('currentUser', JSON.stringify(serverUserData));
           } else {
-            console.log('AuthContext: Token validation failed, clearing auth data');
             // Token is invalid, clear stored data
             localStorage.removeItem('accessToken');
             localStorage.removeItem('token'); // Legacy compatibility
@@ -71,7 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(null);
         }
       } else {
-        console.log('AuthContext: No token or user data found');
         setLoading(false);
       }
     };

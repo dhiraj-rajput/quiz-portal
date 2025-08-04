@@ -5,6 +5,7 @@ import TestResult from '../models/TestResult';
 import User from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import { AuthenticatedRequest } from '../middleware/auth';
+import { NotificationService } from '../utils/notificationService';
 
 // Temporary mock for express-validator - TO BE REPLACED  
 const validationResult = (_req: any) => ({
@@ -174,7 +175,7 @@ export const getTestForTaking = async (req: AuthenticatedRequest, res: Response,
       isCompleted: true,
     });
 
-    if (previousAttempts >= assignment.maxAttempts) {
+    if (assignment.maxAttempts !== -1 && previousAttempts >= assignment.maxAttempts) {
       return next(new AppError('Maximum attempts reached for this test', 403));
     }
 
@@ -447,6 +448,11 @@ export const assignTest = async (req: AuthenticatedRequest, res: Response, next:
     const existingAssignment = await TestAssignment.findOne({ testId: id });
     
     if (existingAssignment) {
+      // Update the assignment with new parameters
+      existingAssignment.dueDate = dueDateObj;
+      if (timeLimit) existingAssignment.timeLimit = timeLimit;
+      if (maxAttempts !== undefined) existingAssignment.maxAttempts = maxAttempts;
+      
       // Add new students to existing assignment
       const newStudentIds = studentIds.filter(
         (studentId: string) => !existingAssignment.assignedTo.map(id => id.toString()).includes(studentId)
@@ -454,11 +460,9 @@ export const assignTest = async (req: AuthenticatedRequest, res: Response, next:
       
       if (newStudentIds.length > 0) {
         existingAssignment.assignedTo.push(...newStudentIds);
-        existingAssignment.dueDate = dueDateObj;
-        if (timeLimit) existingAssignment.timeLimit = timeLimit;
-        if (maxAttempts) existingAssignment.maxAttempts = maxAttempts;
-        await existingAssignment.save();
       }
+      
+      await existingAssignment.save();
     } else {
       // Create new assignment
       await TestAssignment.create({
@@ -469,6 +473,15 @@ export const assignTest = async (req: AuthenticatedRequest, res: Response, next:
         timeLimit: timeLimit || test.timeLimit,
         maxAttempts: maxAttempts || 1,
       });
+    }
+
+    // Send notifications to assigned students
+    try {
+      for (const student of students) {
+        await NotificationService.notifyTestAssignment(student._id.toString(), test.title, dueDateObj);
+      }
+    } catch (notificationError) {
+      console.error('Failed to send test assignment notifications:', notificationError);
     }
 
     res.status(200).json({
@@ -526,7 +539,7 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response, next:
       isCompleted: true,
     });
 
-    if (completedAttempts >= assignment.maxAttempts) {
+    if (assignment.maxAttempts !== -1 && completedAttempts >= assignment.maxAttempts) {
       return next(new AppError('Maximum attempts reached for this test', 403));
     }
 
@@ -604,6 +617,14 @@ export const submitTest = async (req: AuthenticatedRequest, res: Response, next:
         isCompleted: true,
         startedAt: startedAt ? new Date(startedAt) : new Date(),
       });
+
+      // Send notification about test submission and result
+      try {
+        await NotificationService.notifyTestSubmission(req.user!.id, test.title, testResult.submittedAt);
+        await NotificationService.notifyTestResult(req.user!.id, test.title, score, percentage);
+      } catch (notificationError) {
+        console.error('Failed to send test notifications:', notificationError);
+      }
 
       res.status(201).json({
         success: true,

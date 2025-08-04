@@ -116,8 +116,13 @@ const mockTestSchema = new Schema<IMockTest>(
     timeLimit: {
       type: Number,
       required: [true, 'Time limit is required'],
-      min: [15, 'Time limit must be at least 15 minutes'],
-      max: [180, 'Time limit cannot exceed 3 hours (180 minutes)'],
+      min: [0, 'Time limit must be 0 (unlimited) or at least 1 minute'],
+      validate: {
+        validator: function(value: number) {
+          return value === 0 || value >= 1;
+        },
+        message: 'Time limit must be 0 (unlimited) or at least 1 minute'
+      }
     },
     isPublished: {
       type: Boolean,

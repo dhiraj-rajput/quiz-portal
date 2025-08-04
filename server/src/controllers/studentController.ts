@@ -113,16 +113,6 @@ export const getStudentDashboard = async (req: AuthenticatedRequest, res: Respon
       .limit(5)
       .select('moduleId assignedBy createdAt dueDate completedBy');
 
-    // Debug logging for progress calculation
-    console.log('Dashboard Progress Debug:', {
-      userId,
-      assignedModulesCount,
-      completedModulesCount,
-      assignedTestsCount,
-      completedTestsCount,
-      totalAssignedTests: assignedTestsList.length
-    });
-
     res.status(200).json({
       success: true,
       data: {
@@ -154,8 +144,6 @@ export const getAssignedModules = async (req: AuthenticatedRequest, res: Respons
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    console.log('getAssignedModules: Request from user:', userId, 'page:', page, 'limit:', limit);
-
     // Get assigned modules with pagination
     const moduleAssignments = await ModuleAssignment.find({
       assignedTo: { $in: [userId] },
@@ -166,8 +154,6 @@ export const getAssignedModules = async (req: AuthenticatedRequest, res: Respons
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-
-    console.log('getAssignedModules: Found', moduleAssignments.length, 'assignments');
 
     // Add completion status for each assignment
     const assignmentsWithStatus = moduleAssignments.map(assignment => {
@@ -359,6 +345,30 @@ export const getStudentResults = async (req: AuthenticatedRequest, res: Response
       .skip(skip)
       .limit(limit);
 
+    // Transform results to include selectedOptionId and correctOptionId
+    const transformedResults = testResults.map((result: any) => {
+      const resultObj = result.toObject();
+      
+      if (resultObj.testId && resultObj.testId.questions) {
+        resultObj.answers = resultObj.answers.map((answer: any) => {
+          const question = resultObj.testId.questions.find((q: any) => q._id.toString() === answer.questionId);
+          if (question && question.options) {
+            const selectedOption = question.options[answer.selectedAnswer];
+            const correctOption = question.options.find((opt: any) => opt.isCorrect);
+            
+            return {
+              ...answer,
+              selectedOptionId: selectedOption ? selectedOption._id : null,
+              correctOptionId: correctOption ? correctOption._id : null,
+            };
+          }
+          return answer;
+        });
+      }
+      
+      return resultObj;
+    });
+
     // Get total count for pagination
     const totalCount = await TestResult.countDocuments({
       userId: userId,
@@ -369,7 +379,7 @@ export const getStudentResults = async (req: AuthenticatedRequest, res: Response
     res.status(200).json({
       success: true,
       data: {
-        results: testResults,
+        results: transformedResults,
         pagination: {
           currentPage: page,
           totalPages,

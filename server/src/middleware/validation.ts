@@ -1,5 +1,4 @@
-import * as validator from 'express-validator';
-const { body, param, query } = validator;
+import { body, param, query } from 'express-validator/lib/middlewares/validation-chain-builders.js';
 
 
 // Module validation

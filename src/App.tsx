@@ -1,10 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import Navbar from "./components/Layout/Navbar";
 import ProtectedRoute from "./components/Layout/ProtectedRoute";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
+import ForgotPassword from './components/Auth/ForgotPassword';
 import AdminDashboard from "./components/Admin/Dashboard";
 import UserManagement from "./components/Admin/UserManagement";
 import ModuleManagement from "./components/Admin/ModuleManagement";
@@ -18,6 +20,8 @@ import StudentTests from "./components/Student/Tests";
 import StudentResults from "./components/Student/Results";
 import TestInterface from "./components/Student/TestInterface";
 import DocumentViewer from "./components/Student/DocumentViewer";
+import UserProfile from "./components/User/UserProfile";
+import NotificationPage from "./components/Notifications/NotificationPage";
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -66,6 +70,7 @@ const AppContent = () => {
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
                 <Route path="/admin/modules" element={<ProtectedRoute requiredRole="admin"><ModuleManagement /></ProtectedRoute>} />
@@ -78,6 +83,8 @@ const AppContent = () => {
                 <Route path="/student/modules/:moduleId/view" element={<ProtectedRoute requiredRole="student"><DocumentViewer /></ProtectedRoute>} />
                 <Route path="/student/tests" element={<ProtectedRoute requiredRole="student"><StudentTests /></ProtectedRoute>} />
                 <Route path="/student/results" element={<ProtectedRoute requiredRole="student"><StudentResults /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><NotificationPage /></ProtectedRoute>} />
+                <Route path="/profile/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
                 <Route path="/" element={<RoleBasedRedirect />} />
               </Routes>
             </>
@@ -92,7 +99,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <NotificationProvider>
+          <AppContent />
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

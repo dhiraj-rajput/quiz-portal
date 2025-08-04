@@ -6,10 +6,14 @@ export interface IUser extends Document {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber: string;
+  phoneVerified: boolean;
   password: string;
   role: 'admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -40,6 +44,24 @@ const userSchema = new Schema<IUser>(
         'Please provide a valid email address',
       ],
     },
+    phoneNumber: {
+      type: String,
+      required: [true, 'Phone number is required'],
+      unique: true,
+      trim: true,
+      validate: {
+        validator: function (value: string) {
+          // Remove any non-digit characters for validation
+          const cleaned = value.replace(/\D/g, '');
+          return cleaned.length >= 10 && cleaned.length <= 15;
+        },
+        message: 'Please provide a valid phone number',
+      },
+    },
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
     password: {
       type: String,
       required: [true, 'Password is required'],
@@ -65,6 +87,14 @@ const userSchema = new Schema<IUser>(
         },
         message: 'Admission date cannot be in the future',
       },
+    },
+    passwordResetToken: {
+      type: String,
+      default: undefined,
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: undefined,
     },
   },
   {

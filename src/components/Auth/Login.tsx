@@ -138,6 +138,15 @@ const Login: React.FC = () => {
             </div>
           </form>
 
+          <div className="text-center mt-4">
+            <Link 
+              to="/forgot-password" 
+              className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

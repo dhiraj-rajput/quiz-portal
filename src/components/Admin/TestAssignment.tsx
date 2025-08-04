@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Plus, Search } from 'lucide-react';
 import { testAPI, adminAPI } from '../../utils/api';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface Test {
   _id: string;
@@ -29,6 +30,7 @@ interface TestAssignment {
 }
 
 const TestAssignment: React.FC = () => {
+  const { showSuccess, showError } = useNotifications();
   const [tests, setTests] = useState<Test[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [currentAssignment, setCurrentAssignment] = useState<any>(null);
@@ -38,6 +40,7 @@ const TestAssignment: React.FC = () => {
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [maxAttempts, setMaxAttempts] = useState<number>(3);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -60,7 +63,7 @@ const TestAssignment: React.FC = () => {
         setStudents(studentsResponse.data.users || []);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      showError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -77,7 +80,7 @@ const TestAssignment: React.FC = () => {
         
         // Set dates if they exist
         if (response.data.assignment.dueDate) {
-          setDueDate(new Date(response.data.assignment.dueDate).toISOString().split('T')[0]);
+          setDueDate(new Date(response.data.assignment.dueDate).toISOString().slice(0, 16));
         }
       } else {
         // No assignment exists for this test, reset selections
@@ -87,7 +90,7 @@ const TestAssignment: React.FC = () => {
         setStartDate('');
       }
     } catch (error) {
-      console.error('Error loading test assignment:', error);
+      showError('Failed to load test assignment');
       setCurrentAssignment(null);
       setSelectedStudents([]);
     }
@@ -105,12 +108,12 @@ const TestAssignment: React.FC = () => {
 
   const handleAssignTest = async () => {
     if (!selectedTest || selectedStudents.length === 0) {
-      alert('Please select a test and at least one student');
+      showError('Please select a test and at least one student');
       return;
     }
 
     if (!dueDate) {
-      alert('Please set a due date');
+      showError('Please set a due date');
       return;
     }
 
@@ -119,20 +122,20 @@ const TestAssignment: React.FC = () => {
         studentIds: selectedStudents,
         dueDate: dueDate,
         timeLimit: tests.find(t => t._id === selectedTest)?.timeLimit || 30,
-        maxAttempts: 3
+        maxAttempts: maxAttempts
       });
 
-      alert('Test assigned successfully!');
+      showSuccess('Test assigned successfully!');
       setShowAssignModal(false);
       setSelectedTest('');
       setSelectedStudents([]);
       setStartDate('');
       setDueDate('');
+      setMaxAttempts(3);
       setCurrentAssignment(null);
       await loadData();
     } catch (error) {
-      console.error('Error assigning test:', error);
-      alert('Failed to assign test. Please try again.');
+      showError('Failed to assign test. Please try again.');
     }
   };
 
@@ -273,6 +276,23 @@ const TestAssignment: React.FC = () => {
                       onChange={(e) => setDueDate(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Maximum Attempts
+                    </label>
+                    <select
+                      value={maxAttempts}
+                      onChange={(e) => setMaxAttempts(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value={1}>1 Attempt</option>
+                      <option value={2}>2 Attempts</option>
+                      <option value={3}>3 Attempts</option>
+                      <option value={4}>4 Attempts</option>
+                      <option value={5}>5 Attempts</option>
+                      <option value={-1}>Unlimited</option>
+                    </select>
                   </div>
                 </div>
 

@@ -2,8 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import PendingRequest from '../models/PendingRequest';
+import OTPVerification from '../models/OTPVerification';
 import { AppError } from '../middleware/errorHandler';
 import { AuthenticatedRequest, generateToken, generateRefreshToken } from '../middleware/auth';
+import { NotificationService } from '../utils/notificationService';
 
 // Temporary mock for express-validator - TO BE REPLACED
 const validationResult = (_req: any) => ({
@@ -31,17 +33,46 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       return next(new AppError(validationError, 400));
     }
 
-    const { firstName, lastName, email, password, admissionDate } = req.body;
+    const { firstName, lastName, email, phoneNumber, password, admissionDate } = req.body;
 
-    // Check if user already exists in either collection
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return next(new AppError('User with this email already exists', 400));
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phoneNumber || !password || !admissionDate) {
+      return next(new AppError('All fields are required', 400));
     }
 
-    const existingRequest = await PendingRequest.findOne({ email });
+    // Check if phone number is verified
+    const phoneVerification = await OTPVerification.findOne({
+      phoneNumber,
+      verified: true
+    }).sort({ createdAt: -1 });
+
+    if (!phoneVerification) {
+      return next(new AppError('Phone number must be verified before registration', 400));
+    }
+
+    // Check if user already exists in either collection
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { phoneNumber }] 
+    });
+    if (existingUser) {
+      if (existingUser.email === email) {
+        return next(new AppError('User with this email already exists', 400));
+      }
+      if (existingUser.phoneNumber === phoneNumber) {
+        return next(new AppError('User with this phone number already exists', 400));
+      }
+    }
+
+    const existingRequest = await PendingRequest.findOne({ 
+      $or: [{ email }, { phoneNumber }] 
+    });
     if (existingRequest) {
-      return next(new AppError('Registration request already pending for this email', 400));
+      if (existingRequest.email === email) {
+        return next(new AppError('Registration request already pending for this email', 400));
+      }
+      if (existingRequest.phoneNumber === phoneNumber) {
+        return next(new AppError('Registration request already pending for this phone number', 400));
+      }
     }
 
     // Create pending request
@@ -49,6 +80,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       firstName,
       lastName,
       email,
+      phoneNumber,
       password,
       admissionDate,
     });
@@ -61,6 +93,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
         firstName: pendingRequest.firstName,
         lastName: pendingRequest.lastName,
         email: pendingRequest.email,
+        phoneNumber: pendingRequest.phoneNumber,
         status: 'pending',
       },
     });
@@ -238,6 +271,58 @@ export const updatePassword = async (req: AuthenticatedRequest, res: Response, n
     res.status(200).json({
       success: true,
       message: 'Password updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update user profile
+// @route   PATCH /api/auth/profile
+// @access  Private
+export const updateProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { firstName, lastName, phoneNumber } = req.body;
+    const userId = req.user!.id;
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    // Update allowed fields only
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+
+    await user.save();
+
+    // Send notification about profile update
+    try {
+      await NotificationService.notifyProfileUpdate(userId, `${user.firstName} ${user.lastName}`);
+    } catch (notificationError) {
+      console.error('Failed to send profile update notification:', notificationError);
+    }
+
+    // Return updated user data (exclude password)
+    const userResponse = {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      status: user.status,
+      admissionDate: user.admissionDate,
+      createdAt: user.createdAt,
+      phoneVerified: user.phoneVerified,
+    };
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: userResponse,
     });
   } catch (error) {
     next(error);

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Search, Plus, X } from 'lucide-react';
 import { adminAPI } from '../../utils/api';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface User {
   _id: string;
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber?: string;
   role: 'admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: string;
@@ -18,6 +20,7 @@ interface PendingRequest {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber?: string;
   admissionDate: string;
   createdAt: string;
 }
@@ -30,10 +33,16 @@ const UserManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'student'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUserDetailModal, setShowUserDetailModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<Partial<User>>({});
+  const [passwordEdit, setPasswordEdit] = useState({ newPassword: '', confirmPassword: '', changePassword: false });
+  const { showSuccess, showError } = useNotifications();
   const [newUser, setNewUser] = useState({
     firstName: '',
     lastName: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     role: 'student' as 'admin' | 'student',
@@ -94,12 +103,12 @@ const UserManagement: React.FC = () => {
     e.preventDefault();
     
     if (newUser.password !== newUser.confirmPassword) {
-      alert('Passwords do not match');
+      showError('Validation Error', 'Passwords do not match');
       return;
     }
 
     if (newUser.password.length < 8) {
-      alert('Password must be at least 8 characters long');
+      showError('Validation Error', 'Password must be at least 8 characters long');
       return;
     }
 
@@ -109,6 +118,7 @@ const UserManagement: React.FC = () => {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         email: newUser.email,
+        phoneNumber: newUser.phoneNumber,
         password: newUser.password,
         role: newUser.role,
         admissionDate: newUser.admissionDate
@@ -119,16 +129,17 @@ const UserManagement: React.FC = () => {
         firstName: '',
         lastName: '',
         email: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: '',
         role: 'student',
         admissionDate: ''
       });
       await loadData();
-      alert('User created successfully!');
+      showSuccess('User Created', 'User created successfully!');
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Failed to create user');
+      showError('Creation Failed', 'Failed to create user');
     }
   };
 
@@ -137,10 +148,10 @@ const UserManagement: React.FC = () => {
       try {
         await adminAPI.updateUser(userId, { role: newRole });
         await loadData();
-        alert('User role updated successfully!');
+        showSuccess('Role Updated', 'User role updated successfully!');
       } catch (error) {
         console.error('Error updating user role:', error);
-        alert('Failed to update user role');
+        showError('Update Failed', 'Failed to update user role');
       }
     }
   };
@@ -150,78 +161,133 @@ const UserManagement: React.FC = () => {
       try {
         await adminAPI.deleteUser(userId);
         await loadData();
-        alert('User deleted successfully!');
+        showSuccess('User Deleted', 'User deleted successfully!');
       } catch (error) {
         console.error('Error deleting user:', error);
-        alert('Failed to delete user');
+        showError('Delete Failed', 'Failed to delete user');
+      }
+    }
+  };
+
+  const handleViewUserDetails = (user: User) => {
+    setSelectedUser(user);
+    setEditingUser({ ...user });
+    setPasswordEdit({ newPassword: '', confirmPassword: '', changePassword: false });
+    setShowUserDetailModal(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser || !editingUser) return;
+
+    // Validate password if changing
+    if (passwordEdit.changePassword) {
+      if (passwordEdit.newPassword.length < 8) {
+        showError('Validation Error', 'Password must be at least 8 characters long');
+        return;
+      }
+      if (passwordEdit.newPassword !== passwordEdit.confirmPassword) {
+        showError('Validation Error', 'Passwords do not match');
+        return;
+      }
+    }
+
+    try {
+      const updateData: Partial<User & { password?: string }> = { ...editingUser };
+      if (passwordEdit.changePassword) {
+        updateData.password = passwordEdit.newPassword;
+      }
+      
+      await adminAPI.updateUser(selectedUser._id, updateData);
+      setShowUserDetailModal(false);
+      setSelectedUser(null);
+      setEditingUser({});
+      setPasswordEdit({ newPassword: '', confirmPassword: '', changePassword: false });
+      await loadData(); // Reload data
+      showSuccess('User Updated', 'User updated successfully!');
+    } catch (error) {
+      console.error('Error updating user:', error);
+      showError('Update Failed', 'Failed to update user. Please try again.');
+    }
+  };
+
+  const handleDeleteUserFromModal = async () => {
+    if (!selectedUser) return;
+
+    if (window.confirm(`Are you sure you want to delete user: ${selectedUser.email}?`)) {
+      try {
+        await adminAPI.deleteUser(selectedUser._id);
+        setShowUserDetailModal(false);
+        setSelectedUser(null);
+        setEditingUser({});
+        await loadData(); // Reload data
+        showSuccess('User Deleted', 'User deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        showError('Delete Failed', 'Failed to delete user. Please try again.');
       }
     }
   };
 
   const filteredUsers = Array.isArray(users) ? users.filter(user => {
-    const matchesSearch = `${user.firstName} ${user.lastName} ${user.email}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = `${user.firstName} ${user.lastName} ${user.email} ${user.phoneNumber || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   }) : [];
 
   const filteredPendingRequests = Array.isArray(pendingRequests) ? pendingRequests.filter(request =>
-    `${request.firstName} ${request.lastName} ${request.email}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${request.firstName} ${request.lastName} ${request.email} ${request.phoneNumber || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
   ) : [];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
+      <div className="user-management-loading-container">
+        <div className="user-management-loading-content">
+          <div className="user-management-loading-spinner"></div>
+          <p className="user-management-loading-text">Loading users...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
-              <p className="mt-2 text-gray-600 dark:text-gray-400">
+    <div className="user-management-container">
+      <div className="user-management-content">
+        <div className="user-management-header">
+          <div className="user-management-header-content">
+            <div className="user-management-title-section">
+              <h1 className="user-management-title">User Management</h1>
+              <p className="user-management-subtitle">
                 Manage users and pending registration requests
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="create-user-button"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="create-user-button-icon" />
               Create User
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="px-4 sm:px-0 mb-6">
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <nav className="-mb-px flex space-x-8">
+        <div className="user-management-tabs">
+          <div className="tabs-container">
+            <nav className="tabs-nav">
               <button
                 onClick={() => setActiveTab('users')}
-                className={`${
-                  activeTab === 'users'
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                className={`tab-button ${
+                  activeTab === 'users' ? 'tab-button-active' : 'tab-button-inactive'
+                }`}
               >
                 <Users className="h-5 w-5 inline mr-2" />
                 Active Users ({filteredUsers.length})
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`${
-                  activeTab === 'pending'
-                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                className={`tab-button ${
+                  activeTab === 'pending' ? 'tab-button-active' : 'tab-button-inactive'
+                }`}
               >
                 <UserCheck className="h-5 w-5 inline mr-2" />
                 Pending Requests ({filteredPendingRequests.length})
@@ -280,9 +346,12 @@ const UserManagement: React.FC = () => {
                           </div>
                           <div className="ml-4">
                             <div className="flex items-center">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                              <button
+                                onClick={() => handleViewUserDetails(user)}
+                                className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                              >
                                 {user.firstName} {user.lastName}
-                              </p>
+                              </button>
                               <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                               }`}>
@@ -290,6 +359,9 @@ const UserManagement: React.FC = () => {
                               </span>
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                            {user.phoneNumber && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">📱 {user.phoneNumber}</p>
+                            )}
                             <p className="text-xs text-gray-400 dark:text-gray-500">
                               Joined: {new Date(user.createdAt).toLocaleDateString()}
                             </p>
@@ -356,6 +428,9 @@ const UserManagement: React.FC = () => {
                               {request.firstName} {request.lastName}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">{request.email}</p>
+                            {request.phoneNumber && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">📱 {request.phoneNumber}</p>
+                            )}
                             <p className="text-xs text-gray-400 dark:text-gray-500">
                               Requested: {new Date(request.createdAt).toLocaleDateString()}
                             </p>
@@ -399,7 +474,7 @@ const UserManagement: React.FC = () => {
       {/* Create User Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+          <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white dark:bg-gray-800">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Create New User</h3>
@@ -447,6 +522,20 @@ const UserManagement: React.FC = () => {
                     value={newUser.email}
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                     className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={newUser.phoneNumber}
+                    onChange={(e) => setNewUser({ ...newUser, phoneNumber: e.target.value })}
+                    className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Enter 10-digit mobile number"
                     required
                   />
                 </div>
@@ -521,6 +610,215 @@ const UserManagement: React.FC = () => {
                   >
                     Create User
                   </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Detail Modal */}
+      {showUserDetailModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  User Details
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowUserDetailModal(false);
+                    setSelectedUser(null);
+                    setEditingUser({});
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <form className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.firstName || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editingUser.lastName || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editingUser.email || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={editingUser.phoneNumber || ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, phoneNumber: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter 10-digit mobile number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Role
+                  </label>
+                  <select
+                    value={editingUser.role || 'student'}
+                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as 'admin' | 'student' })}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Status
+                  </label>
+                  <select
+                    value={editingUser.status || 'active'}
+                    onChange={(e) => setEditingUser({ ...editingUser, status: e.target.value as 'active' | 'inactive' })}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                {/* Password Change Section */}
+                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                  <div className="flex items-center mb-3">
+                    <input
+                      type="checkbox"
+                      id="changePassword"
+                      checked={passwordEdit.changePassword}
+                      onChange={(e) => setPasswordEdit({ ...passwordEdit, changePassword: e.target.checked, newPassword: '', confirmPassword: '' })}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="changePassword" className="ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Change Password
+                    </label>
+                  </div>
+
+                  {passwordEdit.changePassword && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordEdit.newPassword}
+                          onChange={(e) => setPasswordEdit({ ...passwordEdit, newPassword: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Enter new password (min 8 characters)"
+                          minLength={8}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordEdit.confirmPassword}
+                          onChange={(e) => setPasswordEdit({ ...passwordEdit, confirmPassword: e.target.value })}
+                          className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                      {passwordEdit.newPassword && passwordEdit.confirmPassword && passwordEdit.newPassword !== passwordEdit.confirmPassword && (
+                        <p className="text-red-600 text-sm">Passwords do not match</p>
+                      )}
+                      {passwordEdit.newPassword && passwordEdit.newPassword.length < 8 && (
+                        <p className="text-red-600 text-sm">Password must be at least 8 characters long</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Admission Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editingUser.admissionDate ? new Date(editingUser.admissionDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => setEditingUser({ ...editingUser, admissionDate: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <strong>Created:</strong> {new Date(selectedUser.createdAt).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <strong>User ID:</strong> {selectedUser._id}
+                  </p>
+                </div>
+
+                <div className="flex justify-between gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={handleDeleteUserFromModal}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Delete User
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserDetailModal(false);
+                        setSelectedUser(null);
+                        setEditingUser({});
+                        setPasswordEdit({ newPassword: '', confirmPassword: '', changePassword: false });
+                      }}
+                      className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUpdateUser}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Update User
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

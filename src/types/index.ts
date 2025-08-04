@@ -3,6 +3,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber?: string;
   role: 'admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: string;
@@ -14,6 +15,7 @@ export interface PendingRequest {
   firstName: string;
   lastName: string;
   email: string;
+  phoneNumber?: string;
   admissionDate: string;
   status: 'pending';
   createdAt: string;

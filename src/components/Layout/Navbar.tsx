@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNotificationCount } from '../../hooks/useNotificationCount';
 import { 
   BookOpen, 
   LogOut, 
@@ -9,13 +10,15 @@ import {
   Sun, 
   User, 
   Menu,
-  X
+  X,
+  Bell
 } from 'lucide-react';
 import { useState } from 'react';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { unreadCount } = useNotificationCount();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -120,13 +123,31 @@ const Navbar: React.FC = () => {
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
 
+            {/* Notifications */}
+            <Link
+              to="/notifications"
+              className="relative p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5" />
+              {/* Notification badge - show if there are unread notifications */}
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
             {/* User Menu */}
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Link 
+                  to={`/profile/${user.id}`}
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
                   {user.firstName} {user.lastName}
-                </span>
+                </Link>
                 <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
                   {user.role}
                 </span>

@@ -6,6 +6,7 @@ import {
   logout,
   getMe,
   updatePassword,
+  updateProfile,
 } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 
@@ -22,5 +23,6 @@ router.use(protect); // All routes after this middleware are protected
 router.post('/logout', logout);
 router.get('/me', getMe);
 router.patch('/update-password', updatePassword);
+router.patch('/profile', updateProfile);
 
 export default router;

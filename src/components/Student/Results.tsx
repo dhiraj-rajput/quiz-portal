@@ -58,7 +58,6 @@ const StudentResults: React.FC = () => {
         setResults(response.data.results || []);
       }
     } catch (err) {
-      console.error('Error loading test results:', err);
       setError('Failed to load test results');
     } finally {
       setLoading(false);
@@ -414,15 +413,84 @@ const StudentResults: React.FC = () => {
                   Question-by-Question Analysis
                 </h4>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {selectedResult.answers.map((answer, index) => {
-                    const question = selectedResult.testId.questions.find(q => q._id === answer.questionId);
+                  {(() => {
+                    const debugData = {
+                      totalAnswers: selectedResult.answers.length,
+                      totalQuestions: selectedResult.testId.questions?.length || 0,
+                      sampleAnswer: selectedResult.answers[0],
+                      sampleQuestion: selectedResult.testId.questions?.[0],
+                      allAnswerQuestionIds: selectedResult.answers.map(a => ({ 
+                        id: a.questionId, 
+                        isCorrect: a.isCorrect,
+                        selectedAnswer: a.selectedAnswer,
+                        hasOptionIds: !!(a.selectedOptionId && a.correctOptionId)
+                      })),
+                      allQuestionIds: selectedResult.testId.questions?.map(q => q._id) || []
+                    };
+                    console.warn('Debug - Full Analysis Data:', debugData);
+                    console.warn('Debug - Questions missing answers:', 
+                      debugData.allQuestionIds.filter(qId => 
+                        !debugData.allAnswerQuestionIds.some(a => a.id === qId)
+                      )
+                    );
+                    return null;
+                  })()}
+                  
+                  {/* Render all questions from the test, not just the ones with answers */}
+                  {selectedResult.testId.questions?.map((question, index) => {
+                    // Find the corresponding answer for this question
+                    const answer = selectedResult.answers.find(a => a.questionId === question._id);
+                    
+                    // If no answer found, create a placeholder answer indicating no response
+                    const effectiveAnswer = answer || {
+                      questionId: question._id,
+                      selectedAnswer: -1, // -1 indicates no selection
+                      selectedOptionId: '',
+                      correctOptionId: '',
+                      isCorrect: false,
+                      pointsEarned: 0,
+                      timeSpent: 0
+                    };
+                    
+                    // Check if option IDs are missing and use index-based approach
+                    const hasOptionIds = effectiveAnswer.selectedOptionId && effectiveAnswer.correctOptionId;
+                    let selectedOptionId = effectiveAnswer.selectedOptionId;
+                    let correctOptionId = effectiveAnswer.correctOptionId;
+                    
+                    if (!hasOptionIds && question && question.options) {
+                      // Use index-based approach for the selected answer
+                      const selectedOption = effectiveAnswer.selectedAnswer >= 0 ? question.options[effectiveAnswer.selectedAnswer] : null;
+                      const correctOption = question.options.find((opt: any) => opt.isCorrect);
+                      
+                      selectedOptionId = selectedOption?._id || '';
+                      correctOptionId = correctOption?._id || '';
+                      
+                      if (answer) { // Only log for actual answers, not placeholder ones
+                        console.warn(`Using index-based option matching for question ${index + 1}:`, {
+                          selectedAnswer: effectiveAnswer.selectedAnswer,
+                          selectedOptionId,
+                          correctOptionId,
+                          isCorrect: effectiveAnswer.isCorrect
+                        });
+                      }
+                    }
+                    
+                    if (question && (!selectedOptionId || !correctOptionId)) {
+                      console.warn(`Missing option IDs for question ${index + 1}:`, {
+                        answer: effectiveAnswer,
+                        questionOptions: question.options,
+                        calculatedIds: { selectedOptionId, correctOptionId }
+                      });
+                    }
+                    
                     return (
                       <div
-                        key={answer.questionId}
+                        key={effectiveAnswer.questionId}
                         className={`p-4 rounded-lg border ${
-                          answer.isCorrect
+                          effectiveAnswer.isCorrect
                             ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
-                            : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+                            : answer ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+                                     : 'border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-700'
                         }`}
                       >
                         <div className="flex items-start justify-between">
@@ -431,41 +499,86 @@ const StudentResults: React.FC = () => {
                               <span className="text-sm font-medium text-gray-900 dark:text-white mr-2">
                                 Question {index + 1}
                               </span>
-                              {answer.isCorrect ? (
+                              {effectiveAnswer.isCorrect ? (
                                 <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                              ) : (
+                              ) : answer ? (
                                 <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                              ) : (
+                                <XCircle className="h-5 w-5 text-gray-400" />
                               )}
                               <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                                {answer.pointsEarned} point{answer.pointsEarned !== 1 ? 's' : ''}
+                                {effectiveAnswer.pointsEarned} point{effectiveAnswer.pointsEarned !== 1 ? 's' : ''}
                               </span>
+                              {!answer && (
+                                <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
+                                  (Not answered)
+                                </span>
+                              )}
                             </div>
-                            {question && (
+                            {question ? (
                               <div>
                                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                                   {question.question}
                                 </p>
                                 <div className="space-y-1">
-                                  {question.options.map((option: any) => (
-                                    <div
-                                      key={option._id}
-                                      className={`text-xs p-2 rounded ${
-                                        option._id === answer.correctOptionId
-                                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                                          : option._id === answer.selectedOptionId && !answer.isCorrect
-                                          ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
-                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                      }`}
-                                    >
-                                      {option.text}
-                                      {option._id === answer.correctOptionId && (
-                                        <span className="ml-2 text-green-600 dark:text-green-400">✓ Correct</span>
-                                      )}
-                                      {option._id === answer.selectedOptionId && option._id !== answer.correctOptionId && (
-                                        <span className="ml-2 text-red-600 dark:text-red-400">✗ Your answer</span>
-                                      )}
-                                    </div>
-                                  ))}
+                                  {question.options.map((option: any, optionIndex: number) => {
+                                    // Use calculated option IDs if original ones are missing
+                                    const isCorrect = option._id === correctOptionId;
+                                    const isSelected = option._id === selectedOptionId;
+                                    
+                                    // Debug logging for option matching
+                                    if (optionIndex === 0) {
+                                      console.warn('Debug - Question Options Analysis:', {
+                                        questionId: question._id,
+                                        answerData: {
+                                          originalSelectedOptionId: effectiveAnswer.selectedOptionId,
+                                          originalCorrectOptionId: effectiveAnswer.correctOptionId,
+                                          calculatedSelectedOptionId: selectedOptionId,
+                                          calculatedCorrectOptionId: correctOptionId,
+                                          selectedAnswer: effectiveAnswer.selectedAnswer,
+                                          isCorrect: effectiveAnswer.isCorrect,
+                                          hasRealAnswer: !!answer
+                                        },
+                                        firstOption: {
+                                          _id: option._id,
+                                          text: option.text?.substring(0, 30) + '...'
+                                        }
+                                      });
+                                    }
+                                    
+                                    // Fallback: if option IDs don't match, try using index from selectedAnswer
+                                    const isSelectedByIndex = optionIndex === effectiveAnswer.selectedAnswer;
+                                    
+                                    // Use ID matching if available and valid, otherwise fall back to index
+                                    const finalIsCorrect = isCorrect;
+                                    const finalIsSelected = isSelected || (!selectedOptionId && isSelectedByIndex);
+                                    
+                                    let className = 'text-xs p-2 rounded border ';
+                                    if (finalIsCorrect && finalIsSelected) {
+                                      className += 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-600';
+                                    } else if (finalIsCorrect) {
+                                      className += 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700';
+                                    } else if (finalIsSelected) {
+                                      className += 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-300 dark:border-red-600';
+                                    } else {
+                                      className += 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+                                    }
+                                    
+                                    return (
+                                      <div key={option._id} className={className}>
+                                        {option.text}
+                                        {finalIsCorrect && (
+                                          <span className="ml-2 text-green-600 dark:text-green-400">✓ Correct</span>
+                                        )}
+                                        {finalIsSelected && !finalIsCorrect && (
+                                          <span className="ml-2 text-red-600 dark:text-red-400">✗ Your answer</span>
+                                        )}
+                                        {finalIsSelected && finalIsCorrect && (
+                                          <span className="ml-2 text-green-600 dark:text-green-400">✓ Your answer (Correct!)</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                                 {question.explanation && (
                                   <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 rounded-r">
@@ -482,6 +595,17 @@ const StudentResults: React.FC = () => {
                                     </div>
                                   </div>
                                 )}
+                              </div>
+                            ) : (
+                              <div>
+                                <p className="text-sm text-red-600 dark:text-red-400 mb-2">
+                                  ⚠️ Question data not found (ID: {effectiveAnswer.questionId})
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Selected Answer Index: {effectiveAnswer.selectedAnswer} | 
+                                  Is Correct: {effectiveAnswer.isCorrect ? 'Yes' : 'No'} | 
+                                  Points: {effectiveAnswer.pointsEarned}
+                                </p>
                               </div>
                             )}
                           </div>

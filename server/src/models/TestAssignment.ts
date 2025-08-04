@@ -44,14 +44,24 @@ const testAssignmentSchema = new Schema<ITestAssignment>(
     timeLimit: {
       type: Number,
       required: [true, 'Time limit is required'],
-      min: [15, 'Time limit must be at least 15 minutes'],
-      max: [180, 'Time limit cannot exceed 3 hours (180 minutes)'],
+      min: [0, 'Time limit must be 0 (unlimited) or at least 1 minute'],
+      validate: {
+        validator: function(value: number) {
+          return value === 0 || value >= 1;
+        },
+        message: 'Time limit must be 0 (unlimited) or at least 1 minute'
+      }
     },
     maxAttempts: {
       type: Number,
       required: [true, 'Maximum attempts is required'],
-      min: [1, 'Must allow at least 1 attempt'],
-      max: [5, 'Cannot allow more than 5 attempts'],
+      min: [-1, 'Must be -1 (unlimited) or at least 1 attempt'],
+      validate: {
+        validator: function(value: number) {
+          return value === -1 || value >= 1;
+        },
+        message: 'Maximum attempts must be -1 (unlimited) or at least 1'
+      },
       default: 1,
     },
     isActive: {

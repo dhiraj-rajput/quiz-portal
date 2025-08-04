@@ -24,6 +24,9 @@ import testRoutes from './routes/tests';
 import fileRoutes from './routes/files';
 import analyticsRoutes from './routes/analytics';
 import monitoringRoutes from './routes/monitoring';
+import notificationRoutes from './routes/notifications';
+import otpRoutes from './routes/otp';
+import forgotPasswordRoutes from './routes/forgotPassword';
 
 // Load environment variables
 dotenv.config();
@@ -83,7 +86,7 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV === 'development', // Skip rate limiting in development
+  skip: (_req) => process.env.NODE_ENV === 'development', // Skip rate limiting in development
 });
 app.set('trust proxy', 1);
 
@@ -114,6 +117,9 @@ app.use('/api/tests', testRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/monitoring', monitoringRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/otp', otpRoutes);
+app.use('/api/forgot-password', forgotPasswordRoutes);
 
 // Serve uploads
 app.use('/uploads', express.static('uploads'));

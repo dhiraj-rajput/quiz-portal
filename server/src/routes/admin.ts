@@ -6,6 +6,7 @@ import {
   approveUser,
   rejectUser,
   getUsers,
+  getUserById,
   createUser,
   updateUser,
   deleteUser,
@@ -22,6 +23,7 @@ router.get('/dashboard', getDashboard);
 
 // User management routes
 router.get('/users', getUsers);
+router.get('/users/:id', getUserById);
 router.post('/users', createUser);
 router.patch('/users/:id', updateUser);
 router.put('/users/:id', updateUser);
