@@ -11,6 +11,8 @@ export interface AuthenticatedRequest extends Request {
     firstName: string;
     lastName: string;
   };
+  files?: any[];
+  file?: any;
 }
 
 export const protect = async (

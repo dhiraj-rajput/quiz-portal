@@ -139,7 +139,7 @@ export const createModule = async (req: AuthenticatedRequest, res: Response, nex
     }
 
     const { title, description } = req.body;
-    const files = req.files as Express.Multer.File[] || [];
+    const files = req.files as any[] || [];
 
     // Process uploaded files
     const moduleFiles = files.map(file => ({
@@ -198,7 +198,7 @@ export const updateModule = async (req: AuthenticatedRequest, res: Response, nex
     if (description) module.description = description;
 
     // Handle new file uploads
-    const files = req.files as Express.Multer.File[] || [];
+    const files = req.files as any[] || [];
     if (files.length > 0) {
       const newFiles = files.map(file => ({
         fileName: file.filename,

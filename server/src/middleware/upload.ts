@@ -18,10 +18,10 @@ if (!fs.existsSync(moduleUploadDir)) {
 
 // Configure multer storage
 const storage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, cb) => {
+  destination: (_req: Request, _file: any, cb: any) => {
     cb(null, moduleUploadDir);
   },
-  filename: (_req: Request, file: Express.Multer.File, cb) => {
+  filename: (_req: Request, file: any, cb: any) => {
     // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 });
 
 // File filter function
-const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter = (_req: Request, file: any, cb: any) => {
   // Allowed file types for modules
   const allowedMimeTypes = [
     'application/pdf',           // PDF
@@ -97,7 +97,7 @@ export const deleteFile = (filePath: string): void => {
 };
 
 // Helper function to get file info
-export const getFileInfo = (file: Express.Multer.File) => {
+export const getFileInfo = (file: any) => {
   return {
     fileName: file.filename,
     originalName: file.originalname,
@@ -109,7 +109,7 @@ export const getFileInfo = (file: Express.Multer.File) => {
 };
 
 // Helper function to validate file types for modules
-export const validateModuleFiles = (files: Express.Multer.File[]): string | null => {
+export const validateModuleFiles = (files: any[]): string | null => {
   const allowedExtensions = ['.pdf', '.mp4', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.xls', '.xlsx'];
   
   for (const file of files) {
