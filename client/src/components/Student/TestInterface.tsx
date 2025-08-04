@@ -726,7 +726,7 @@ const TestInterface: React.FC = () => {
                 <span className="text-4xl">🍪</span>
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">
-                Enable Browser Cookies
+                Grant Device Permissions
               </h2>
               <p className="text-orange-100">
                 Required for secure test environment
@@ -737,8 +737,9 @@ const TestInterface: React.FC = () => {
             <div className="p-8">
               <div className="text-center mb-8">
                 <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                  This test requires cookies to be enabled in your browser for security and session management. 
-                  We'll verify that cookies are working properly before proceeding to the test environment.
+                  This test requires several device permissions for security and optimal performance. 
+                  We'll request permissions for cookies, screen wake lock, notifications, and other features 
+                  to ensure a secure and uninterrupted testing experience.
                 </p>
               </div>
 
@@ -748,12 +749,13 @@ const TestInterface: React.FC = () => {
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mb-4">
                     <span className="text-xl">🔒</span>
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Why cookies are needed:</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Device Permissions:</h3>
                   <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    <li>• Maintain your test session securely</li>
-                    <li>• Prevent unauthorized access</li>
-                    <li>• Track test progress and save answers</li>
-                    <li>• Ensure fair testing conditions</li>
+                    <li>• Cookies for secure session management</li>
+                    <li>• Screen wake lock (keep screen on)</li>
+                    <li>• Notification permission for alerts</li>
+                    <li>• Screen orientation lock (mobile)</li>
+                    <li>• Storage persistence for test data</li>
                   </ul>
                 </div>
 
@@ -761,12 +763,14 @@ const TestInterface: React.FC = () => {
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mb-4">
                     <span className="text-xl">📋</span>
                   </div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Next steps:</h3>
-                  <ol className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    <li>1. Click "Check Cookies & Continue" below</li>
-                    <li>2. Allow fullscreen mode when prompted</li>
-                    <li>3. Begin your secure test environment</li>
-                  </ol>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Security Features:</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    <li>• Fullscreen mode enforcement</li>
+                    <li>• Copy/paste prevention</li>
+                    <li>• Tab switching detection</li>
+                    <li>• Auto-submission after 3 exits</li>
+                    <li>• Developer tools blocking</li>
+                  </ul>
                 </div>
               </div>
 
@@ -798,7 +802,7 @@ const TestInterface: React.FC = () => {
                   onClick={handleCookiePermission}
                   className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  🍪 Check Cookies & Continue
+                  🍪 Grant Permissions & Continue
                 </button>
               </div>
             </div>
