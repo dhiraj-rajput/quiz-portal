@@ -104,7 +104,19 @@ app.get('/', (_req, res) => {
     message: 'Quiz Portal API is running on Vercel!', 
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    environment: serverConfig.NODE_ENV
+    environment: serverConfig.NODE_ENV,
+    version: '1.0.0'
+  });
+});
+
+// Debug endpoint for troubleshooting
+app.get('/api/debug', (_req, res) => {
+  res.json({
+    message: 'Debug endpoint',
+    environment: serverConfig.NODE_ENV,
+    hasMongoUri: !!serverConfig.MONGODB_URI,
+    timestamp: new Date().toISOString(),
+    status: 'API is working'
   });
 });
 
