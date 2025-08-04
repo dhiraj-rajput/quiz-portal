@@ -4,8 +4,23 @@ A comprehensive quiz management system built with MongoDB, Express.js, React, No
 
 ## 🌐 Live Demo
 
-- **Frontend**: [https://your-frontend-deployment.vercel.app](https://your-frontend-deployment.vercel.app)
-- **API**: [https://your-api-deployment.vercel.app](https://your-api-deployment.vercel.app)
+- **Frontend**: Deploy to Vercel - [Your Deployment URL]
+- **API**: Deploy to Render - [Your Deployment URL]
+
+## 🚀 Quick Deployment
+
+### Render (Backend) + Vercel (Frontend)
+```bash
+# 1. Push your code to GitHub
+git add .
+git commit -m "Ready for deployment"
+git push origin main
+
+# 2. Follow the deployment guide
+See DEPLOYMENT.md for step-by-step instructions
+```
+
+**Prerequisites**: GitHub account, Render account, Vercel account, MongoDB Atlas
 
 ## 🚀 Features
 

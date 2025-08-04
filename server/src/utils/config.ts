@@ -63,8 +63,11 @@ export const getCorsOrigins = (): string[] => {
 
 export const buildServerUrl = (path: string = ''): string => {
   const protocol = serverConfig.NODE_ENV === 'production' ? 'https' : 'http';
-  const host = serverConfig.NODE_ENV === 'production' ? 'your-domain.com' : 'localhost';
-  return `${protocol}://${host}:${serverConfig.PORT}${path}`;
+  const host = serverConfig.NODE_ENV === 'production' 
+    ? process.env.RENDER_EXTERNAL_URL?.replace('https://', '') || 'quiz-portal-server.onrender.com'
+    : 'localhost';
+  const port = serverConfig.NODE_ENV === 'production' ? '' : `:${serverConfig.PORT}`;
+  return `${protocol}://${host}${port}${path}`;
 };
 
 export default serverConfig;

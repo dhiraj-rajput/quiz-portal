@@ -8,6 +8,7 @@
     "allowJs": true,
     "declaration": false,
     "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -23,8 +24,7 @@
     "types": ["node"]
   },
   "include": [
-    "src/**/*",
-    "api/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
