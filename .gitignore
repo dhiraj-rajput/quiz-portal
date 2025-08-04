@@ -12,17 +12,27 @@ out/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 .env.production
 
+# Environment configuration files
+*env-vars.txt
+backend-env-vars.txt
+frontend-env-vars.txt
+
 # Server specific
 server/dist/
 server/logs/
 server/.env
-server/uploads/
+server/.env.*
+!server/.env.example
+server/uploads/*
+!server/uploads/.gitkeep
 
 # IDE and editor files
 .vscode/
