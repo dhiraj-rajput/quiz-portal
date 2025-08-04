@@ -99,7 +99,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ---------- Routes ----------
 // Health check for Vercel
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({ 
     message: 'Quiz Portal API is running on Vercel!', 
     status: 'healthy',
@@ -109,52 +109,52 @@ app.get('/', (req, res) => {
 });
 
 // API Routes with database initialization
-app.use('/api/auth', async (req, res, next) => {
+app.use('/api/auth', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, authRoutes);
 
-app.use('/api/admin', async (req, res, next) => {
+app.use('/api/admin', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, adminRoutes);
 
-app.use('/api/student', async (req, res, next) => {
+app.use('/api/student', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, studentRoutes);
 
-app.use('/api/tests', async (req, res, next) => {
+app.use('/api/tests', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, testRoutes);
 
-app.use('/api/modules', async (req, res, next) => {
+app.use('/api/modules', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, moduleRoutes);
 
-app.use('/api/files', async (req, res, next) => {
+app.use('/api/files', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, fileRoutes);
 
-app.use('/api/analytics', async (req, res, next) => {
+app.use('/api/analytics', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, analyticsRoutes);
 
-app.use('/api/notifications', async (req, res, next) => {
+app.use('/api/notifications', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, notificationRoutes);
 
-app.use('/api/otp', async (req, res, next) => {
+app.use('/api/otp', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, otpRoutes);
 
-app.use('/api/forgot-password', async (req, res, next) => {
+app.use('/api/forgot-password', async (_req, _res, next) => {
   await initializeDB();
   next();
 }, forgotPasswordRoutes);
