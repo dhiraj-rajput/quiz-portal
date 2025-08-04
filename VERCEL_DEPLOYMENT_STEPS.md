@@ -19,10 +19,10 @@ Go to your backend project settings and add these environment variables:
 
 ```bash
 # Database
-MONGODB_URI=mongodb+srv://alluses1033:dj54phantom@cluster0.pot79.mongodb.net/quiz-portal?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.pot79.mongodb.net/quiz-portal?retryWrites=true&w=majority
 
 # JWT Configuration
-JWT_SECRET=829f2063b88840ab752e61872d38f1e4a21ded7c9c10343711d00da7b37e5c85
+JWT_SECRET=YOUR_JWT_SECRET_HERE_32_CHARS_MINIMUM
 JWT_REFRESH_SECRET=your-super-strong-production-refresh-secret-key-min-32-chars
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d

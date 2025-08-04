@@ -6,9 +6,9 @@
 Make sure you've added ALL these environment variables in your Vercel project settings:
 
 ```
-MONGODB_URI=mongodb+srv://alluses1033:dj54phantom@cluster0.pot79.mongodb.net/quiz-portal?retryWrites=true&w=majority
-JWT_SECRET=829f2063b88840ab752e61872d38f1e4a21ded7c9c10343711d00da7b37e5c85
-JWT_REFRESH_SECRET=e76c717317687687df24a22ab2c105957b2b007f8051d86326bd62c5a61af8f2
+MONGODB_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.pot79.mongodb.net/quiz-portal?retryWrites=true&w=majority
+JWT_SECRET=YOUR_JWT_SECRET_HERE_32_CHARS_MINIMUM
+JWT_REFRESH_SECRET=YOUR_REFRESH_SECRET_HERE_32_CHARS_MINIMUM
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 NODE_ENV=production

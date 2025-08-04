@@ -110,3 +110,22 @@ data/
 # Temporary files
 tmp/
 temp/
+
+# Database utility scripts with credentials
+*atlas-connection*
+*migrate-database*
+
+# Large files and media
+*.large
+*.zip
+*.tar.gz
+*.tar
+*.7z
+
+# VS Code workspace files
+*.code-workspace
+
+# Backup files
+*.backup
+*.bak
+database-backup/
