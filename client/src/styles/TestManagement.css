@@ -1,0 +1,357 @@
+/* Test Management Component Styles */
+
+/* Main Container */
+.test-management-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+}
+
+.test-management-content {
+  @apply max-w-7xl mx-auto py-6 sm:px-6 lg:px-8;
+}
+
+/* Header Section */
+.test-management-header {
+  @apply px-4 py-6 sm:px-0;
+}
+
+.test-management-header-content {
+  @apply flex justify-between items-center;
+}
+
+.test-management-title-section {
+  /* Empty class for grouping */
+}
+
+.test-management-title {
+  @apply text-3xl font-bold text-gray-900 dark:text-white;
+}
+
+.test-management-subtitle {
+  @apply mt-2 text-gray-600 dark:text-gray-400;
+}
+
+.create-test-button {
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+}
+
+.create-test-button-icon {
+  @apply h-4 w-4 mr-2;
+}
+
+/* Search Section */
+.test-management-search {
+  @apply px-4 sm:px-0 mb-6;
+}
+
+.search-container {
+  @apply relative;
+}
+
+.search-icon {
+  @apply absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400;
+}
+
+.search-input {
+  @apply pl-10 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500;
+}
+
+/* Tests Grid */
+.test-management-tests {
+  @apply px-4 sm:px-0;
+}
+
+.tests-grid {
+  @apply grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.test-card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden;
+}
+
+.test-card-header {
+  @apply p-6 pb-4;
+}
+
+.test-card-title-section {
+  @apply flex justify-between items-start mb-2;
+}
+
+.test-card-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-white;
+}
+
+.test-card-status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.test-card-status-published {
+  @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+.test-card-status-draft {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.test-card-description {
+  @apply text-gray-600 dark:text-gray-300 text-sm mb-4;
+}
+
+.test-card-stats {
+  @apply grid grid-cols-2 gap-4 text-sm;
+}
+
+.test-card-stat {
+  @apply text-center;
+}
+
+.test-card-stat-value {
+  @apply block text-lg font-semibold text-gray-900 dark:text-white;
+}
+
+.test-card-stat-label {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+.test-card-meta {
+  @apply mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 text-sm text-gray-500 dark:text-gray-400;
+}
+
+.test-card-author {
+  @apply flex items-center justify-between;
+}
+
+.test-card-actions {
+  @apply px-6 pb-6;
+}
+
+.test-card-actions-grid {
+  @apply grid grid-cols-2 gap-2;
+}
+
+.test-action-button {
+  @apply px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200;
+}
+
+.test-edit-button {
+  @apply text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40;
+}
+
+.test-delete-button {
+  @apply text-red-600 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:bg-red-900/20 dark:hover:bg-red-900/40;
+}
+
+.test-publish-button {
+  @apply text-green-600 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:bg-green-900/20 dark:hover:bg-green-900/40;
+}
+
+.test-unpublish-button {
+  @apply text-yellow-600 bg-yellow-50 hover:bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/40;
+}
+
+/* Empty State */
+.tests-empty-state {
+  @apply text-center py-12;
+}
+
+.tests-empty-icon {
+  @apply mx-auto h-12 w-12 text-gray-400;
+}
+
+.tests-empty-title {
+  @apply mt-4 text-lg font-medium text-gray-900 dark:text-white;
+}
+
+.tests-empty-description {
+  @apply mt-2 text-gray-600 dark:text-gray-400;
+}
+
+.tests-empty-action {
+  @apply mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700;
+}
+
+/* Create/Edit Test Modal */
+.test-modal-overlay {
+  @apply fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50;
+}
+
+.test-modal-container {
+  @apply relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800;
+}
+
+.test-modal-content {
+  @apply mt-3;
+}
+
+.test-modal-header {
+  @apply flex justify-between items-center mb-6;
+}
+
+.test-modal-title {
+  @apply text-lg font-medium text-gray-900 dark:text-white;
+}
+
+.test-modal-close {
+  @apply text-gray-400 hover:text-gray-600 dark:hover:text-gray-200;
+}
+
+.test-modal-close-icon {
+  @apply h-6 w-6;
+}
+
+/* Test Form */
+.test-form {
+  @apply space-y-6;
+}
+
+.test-form-section {
+  @apply border-b border-gray-200 dark:border-gray-600 pb-6;
+}
+
+.test-form-section-title {
+  @apply text-lg font-medium text-gray-900 dark:text-white mb-4;
+}
+
+.test-form-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+.form-group {
+  /* Base form group class */
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white;
+}
+
+.form-textarea {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white resize-none;
+}
+
+.form-number-input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white;
+}
+
+/* Questions Section */
+.questions-section {
+  /* Base questions section class */
+}
+
+.questions-list {
+  @apply space-y-6;
+}
+
+.question-card {
+  @apply border border-gray-200 dark:border-gray-600 rounded-lg p-4;
+}
+
+.question-header {
+  @apply flex justify-between items-center mb-4;
+}
+
+.question-title {
+  @apply text-lg font-medium text-gray-900 dark:text-white;
+}
+
+.question-actions {
+  @apply flex space-x-2;
+}
+
+.question-remove-button {
+  @apply text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200;
+}
+
+.question-form-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+
+/* Options Section */
+.options-section {
+  /* Base options section class */
+}
+
+.options-title {
+  @apply text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.options-list {
+  @apply space-y-2;
+}
+
+.option-item {
+  @apply flex items-center space-x-2;
+}
+
+.option-checkbox {
+  @apply h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded;
+}
+
+.option-input {
+  @apply flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white;
+}
+
+.option-remove-button {
+  @apply text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200;
+}
+
+.add-option-button {
+  @apply mt-2 px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-500;
+}
+
+.add-question-button {
+  @apply w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500;
+}
+
+/* Modal Actions */
+.test-modal-actions {
+  @apply mt-6 flex justify-between;
+}
+
+.modal-actions-left {
+  @apply flex space-x-3;
+}
+
+.modal-actions-right {
+  @apply flex space-x-3;
+}
+
+.modal-save-draft-button {
+  @apply px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600;
+}
+
+.modal-cancel-button {
+  @apply px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600;
+}
+
+.modal-publish-button {
+  @apply px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500;
+}
+
+/* Loading States */
+.test-management-loading-container {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center;
+}
+
+.test-management-loading-content {
+  @apply text-center;
+}
+
+.test-management-loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto;
+}
+
+.test-management-loading-text {
+  @apply mt-4 text-gray-600 dark:text-gray-400;
+}
+
+/* Form Validation */
+.form-error {
+  @apply mt-1 text-sm text-red-600 dark:text-red-400;
+}
+
+.form-input-error {
+  @apply border-red-300 dark:border-red-600 focus:ring-red-500 focus:border-red-500;
+}

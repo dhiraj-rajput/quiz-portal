@@ -1,0 +1,320 @@
+/* Tests Component Styles */
+
+/* Page Layout */
+.tests-page {
+  @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+}
+
+.tests-container {
+  @apply max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8;
+}
+
+/* Header Section */
+.tests-header {
+  @apply text-center mb-12;
+}
+
+.tests-title {
+  @apply text-4xl font-bold text-gray-900 dark:text-white mb-4;
+}
+
+.tests-subtitle {
+  @apply text-xl text-gray-600 dark:text-gray-400;
+}
+
+/* Stats Section */
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-12;
+}
+
+.stat-card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center;
+}
+
+.stat-number {
+  @apply text-3xl font-bold text-blue-600 dark:text-blue-400;
+}
+
+.stat-label {
+  @apply text-gray-600 dark:text-gray-400 mt-2;
+}
+
+/* Filter Controls */
+.filter-section {
+  @apply mb-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6;
+}
+
+.filter-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-white mb-4;
+}
+
+.filter-controls {
+  @apply flex flex-wrap gap-4;
+}
+
+.filter-group {
+  @apply flex-1 min-w-48;
+}
+
+.filter-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+}
+
+.filter-select {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white;
+}
+
+/* Test Grid */
+.tests-grid {
+  @apply grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8;
+}
+
+/* Test Card */
+.test-card {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1;
+}
+
+.test-card-header {
+  @apply p-6 border-b border-gray-200 dark:border-gray-700;
+}
+
+.test-card-body {
+  @apply p-6;
+}
+
+.test-card-footer {
+  @apply p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-lg;
+}
+
+/* Test Info */
+.test-title {
+  @apply text-xl font-bold text-gray-900 dark:text-white mb-2;
+}
+
+.test-subject {
+  @apply inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-sm font-medium rounded-full;
+}
+
+.test-meta {
+  @apply space-y-3;
+}
+
+.test-meta-item {
+  @apply flex items-center text-gray-600 dark:text-gray-400;
+}
+
+.test-meta-icon {
+  @apply h-5 w-5 mr-3 text-gray-400 dark:text-gray-500;
+}
+
+.test-meta-text {
+  @apply text-sm;
+}
+
+/* Status Badges */
+.status-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.status-available {
+  @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
+}
+
+.status-completed {
+  @apply bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200;
+}
+
+.status-upcoming {
+  @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200;
+}
+
+.status-expired {
+  @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
+}
+
+.status-in-progress {
+  @apply bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200;
+}
+
+/* Action Buttons */
+.test-actions {
+  @apply flex gap-3;
+}
+
+.btn-start-test {
+  @apply flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-view-results {
+  @apply flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-continue-test {
+  @apply flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-retake-test {
+  @apply flex-1 bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors duration-200;
+}
+
+.btn-disabled {
+  @apply flex-1 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 px-4 py-2 rounded-lg font-medium cursor-not-allowed;
+}
+
+/* Progress Bar */
+.progress-container {
+  @apply mt-4;
+}
+
+.progress-label {
+  @apply flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1;
+}
+
+.progress-bar {
+  @apply w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2;
+}
+
+.progress-fill {
+  @apply h-2 rounded-full transition-all duration-300;
+}
+
+.progress-blue {
+  @apply bg-blue-600;
+}
+
+.progress-green {
+  @apply bg-green-600;
+}
+
+.progress-yellow {
+  @apply bg-yellow-600;
+}
+
+.progress-red {
+  @apply bg-red-600;
+}
+
+/* Empty State */
+.empty-state {
+  @apply text-center py-16;
+}
+
+.empty-state-icon {
+  @apply mx-auto h-24 w-24 text-gray-300 dark:text-gray-600;
+}
+
+.empty-state-title {
+  @apply mt-6 text-xl font-semibold text-gray-900 dark:text-white;
+}
+
+.empty-state-text {
+  @apply mt-2 text-gray-500 dark:text-gray-400;
+}
+
+/* Popup Blocker Alert */
+.popup-alert {
+  @apply mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg;
+}
+
+.popup-alert-icon {
+  @apply h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3;
+}
+
+.popup-alert-text {
+  @apply text-yellow-700 dark:text-yellow-300 text-sm;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .tests-container {
+    @apply px-4 py-6;
+  }
+  
+  .tests-title {
+    @apply text-3xl;
+  }
+  
+  .tests-subtitle {
+    @apply text-lg;
+  }
+  
+  .stats-grid {
+    @apply grid-cols-1 gap-4 mb-8;
+  }
+  
+  .filter-controls {
+    @apply flex-col;
+  }
+  
+  .filter-group {
+    @apply min-w-full;
+  }
+  
+  .tests-grid {
+    @apply grid-cols-1 gap-6;
+  }
+  
+  .test-actions {
+    @apply flex-col;
+  }
+}
+
+/* Animation Classes */
+.slide-in-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.fade-in-delay {
+  animation: fadeIn 0.6s ease-in-out 0.2s both;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading Skeleton */
+.skeleton {
+  @apply animate-pulse;
+}
+
+.skeleton-card {
+  @apply bg-gray-200 dark:bg-gray-700 rounded-lg h-64;
+}
+
+.skeleton-text {
+  @apply bg-gray-200 dark:bg-gray-700 rounded h-4;
+}
+
+.skeleton-text-sm {
+  @apply bg-gray-200 dark:bg-gray-700 rounded h-3;
+}
+
+/* Accessibility */
+.focus-visible {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+}
+
+/* Print Styles */
+@media print {
+  .tests-page {
+    @apply bg-white text-black;
+  }
+  
+  .test-card {
+    @apply border border-gray-300 shadow-none;
+  }
+  
+  .btn-start-test,
+  .btn-view-results,
+  .btn-continue-test,
+  .btn-retake-test {
+    @apply bg-gray-300 text-black border border-gray-400;
+  }
+}
