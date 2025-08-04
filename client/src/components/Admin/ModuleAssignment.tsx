@@ -60,27 +60,22 @@ const ModuleAssignment: React.FC = () => {
 
   const loadModuleAssignment = async (moduleId: string) => {
     try {
-      console.log('Loading module assignment for moduleId:', moduleId);
       const response = await moduleAPI.getModuleAssignment(moduleId);
-      console.log('Module assignment response:', response);
       
       if (response.success && response.data && response.data.assignment) {
-        console.log('Assignment found:', response.data.assignment);
         // Pre-select students who are already assigned
         const assignedStudentIds = response.data.assignment.assignedTo?.map((student: User) => student._id) || [];
-        console.log('Assigned student IDs:', assignedStudentIds);
         setSelectedStudents(assignedStudentIds);
         if (response.data.assignment.dueDate) {
-          setDueDate(new Date(response.data.assignment.dueDate).toISOString().split('T')[0]);
+          const formattedDate = new Date(response.data.assignment.dueDate).toISOString().split('T')[0];
+          setDueDate(formattedDate);
         }
       } else {
-        console.log('No assignment found for this module');
         // No assignment found for this module
         setSelectedStudents([]);
         setDueDate('');
       }
     } catch (error) {
-      console.error('Error loading module assignment:', error);
       setSelectedStudents([]);
       setDueDate('');
     }
@@ -93,13 +88,11 @@ const ModuleAssignment: React.FC = () => {
     }
 
     try {
-      console.log('Assigning module:', selectedModule, 'to students:', selectedStudents);
       const response = await moduleAPI.assignModule(
         selectedModule,
         selectedStudents,
         dueDate || undefined
       );
-      console.log('Assignment response:', response);
 
       if (response.success) {
         showSuccess('Module assigned successfully!');
@@ -107,13 +100,13 @@ const ModuleAssignment: React.FC = () => {
         setSelectedModule('');
         setSelectedStudents([]);
         setDueDate('');
+        setSearchTerm('');
         await loadData();
       } else {
-        showError('Failed to assign module: ' + (response.error?.message || 'Unknown error'));
+        showError('Failed to assign module: ' + (response.error?.message || response.message || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error assigning module:', error);
-      showError('Failed to assign module');
+      showError('Failed to assign module: Network or server error');
     }
   };
 
@@ -202,20 +195,26 @@ const ModuleAssignment: React.FC = () => {
 
         {/* Assignment Modal */}
         {showAssignModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="relative w-full max-w-2xl max-h-[90vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex flex-col h-full">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl my-8 max-h-[85vh] flex flex-col border border-gray-200 dark:border-gray-700">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-t-2xl">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                      Assign Module to Students
-                    </h3>
-                    {selectedModule && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Module: {modules.find(m => m._id === selectedModule)?.title}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center">
+                        <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                          Assign Module to Students
+                        </h3>
+                        {selectedModule && (
+                          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mt-1">
+                            {modules.find(m => m._id === selectedModule)?.title}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={() => {
@@ -225,7 +224,7 @@ const ModuleAssignment: React.FC = () => {
                       setDueDate('');
                       setSearchTerm('');
                     }}
-                    className="ml-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="ml-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-gray-600 rounded-xl transition-all duration-200"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -238,20 +237,28 @@ const ModuleAssignment: React.FC = () => {
                   {/* Due Date */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Due Date (Optional)
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Due Date (Optional)
+                      </span>
                     </label>
                     <input
                       type="date"
                       value={dueDate}
                       onChange={(e) => setDueDate(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                     />
                   </div>
 
                   {/* Student Search */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Search Students
+                      <span className="flex items-center gap-2">
+                        <Search className="w-4 h-4 text-gray-500" />
+                        Search Students
+                      </span>
                     </label>
                     <div className="relative">
                       <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -260,7 +267,7 @@ const ModuleAssignment: React.FC = () => {
                         placeholder="Search by name or email..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                       />
                     </div>
                   </div>
@@ -284,7 +291,7 @@ const ModuleAssignment: React.FC = () => {
                                 setSelectedStudents(filteredStudents.map(s => s._id));
                               }
                             }}
-                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium hover:underline transition-colors"
                           >
                             {selectedStudents.length === filteredStudents.length ? 'Deselect All' : 'Select All'}
                           </button>
@@ -293,41 +300,77 @@ const ModuleAssignment: React.FC = () => {
                     </div>
                     <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-lg">
                       {filteredStudents.length > 0 ? (
-                        filteredStudents.map((student, index) => (
-                          <label key={student._id} className={`flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${index !== filteredStudents.length - 1 ? 'border-b border-gray-200 dark:border-gray-600' : ''}`}>
-                            <input
-                              type="checkbox"
-                              checked={selectedStudents.includes(student._id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedStudents([...selectedStudents, student._id]);
-                                } else {
-                                  setSelectedStudents(selectedStudents.filter(id => id !== student._id));
-                                }
-                              }}
-                              className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                            />
-                            <div className="ml-4 flex-1">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {student.firstName} {student.lastName}
-                              </p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {student.email}
-                              </p>
-                            </div>
-                          </label>
-                        ))
+                        filteredStudents.map((student, index) => {
+                          const isSelected = selectedStudents.includes(student._id);
+                          return (
+                            <label 
+                              key={student._id} 
+                              className={`flex items-center p-4 cursor-pointer transition-all duration-200 ${
+                                isSelected 
+                                  ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' 
+                                  : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                              } ${index !== filteredStudents.length - 1 ? 'border-b border-gray-200 dark:border-gray-600' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedStudents([...selectedStudents, student._id]);
+                                  } else {
+                                    setSelectedStudents(selectedStudents.filter(id => id !== student._id));
+                                  }
+                                }}
+                                className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                              />
+                              <div className="ml-4 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-medium ${
+                                    isSelected 
+                                      ? 'text-blue-900 dark:text-blue-100' 
+                                      : 'text-gray-900 dark:text-white'
+                                  }`}>
+                                    {student.firstName} {student.lastName}
+                                  </p>
+                                  {isSelected && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                                      Selected
+                                    </span>
+                                  )}
+                                </div>
+                                <p className={`text-sm ${
+                                  isSelected 
+                                    ? 'text-blue-700 dark:text-blue-300' 
+                                    : 'text-gray-500 dark:text-gray-400'
+                                }`}>
+                                  {student.email}
+                                </p>
+                              </div>
+                            </label>
+                          );
+                        })
                       ) : (
-                        <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                          <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <Search className="h-6 w-6 text-gray-400" />
+                        <div className="p-12 text-center text-gray-500 dark:text-gray-400">
+                          <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                            <Search className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                           </div>
-                          <p className="font-medium">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-300 mb-2">
                             {students.length === 0 ? 'No students found' : 'No students match your search'}
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                            {students.length === 0 
+                              ? 'Add students to your system first to assign modules to them.' 
+                              : 'Try adjusting your search terms or clear the search to see all students.'
+                            }
                           </p>
-                          <p className="text-sm mt-1">
-                            {students.length === 0 ? 'Add students to your system first.' : 'Try adjusting your search terms.'}
-                          </p>
+                          {searchTerm && students.length > 0 && (
+                            <button
+                              onClick={() => setSearchTerm('')}
+                              className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium hover:underline"
+                            >
+                              Clear search
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -335,28 +378,59 @@ const ModuleAssignment: React.FC = () => {
                 </div>
 
                 {/* Modal Footer */}
-                <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
-                  <button
-                    onClick={() => {
-                      setShowAssignModal(false);
-                      setSelectedModule('');
-                      setSelectedStudents([]);
-                      setDueDate('');
-                      setSearchTerm('');
-                    }}
-                    className="w-full sm:w-auto px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAssignModule}
-                    disabled={!selectedModule || selectedStudents.length === 0}
-                    className="w-full sm:w-auto px-6 py-3 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Assign Module ({selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''})
-                  </button>
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
+                    {/* Selection Summary */}
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedStudents.length > 0 ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          {selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          No students selected
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setShowAssignModal(false);
+                          setSelectedModule('');
+                          setSelectedStudents([]);
+                          setDueDate('');
+                          setSearchTerm('');
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      
+                      <button
+                        onClick={handleAssignModule}
+                        disabled={!selectedModule || selectedStudents.length === 0}
+                        className={`px-6 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                          !selectedModule || selectedStudents.length === 0
+                            ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md focus:ring-blue-500 transform hover:scale-105'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          {selectedStudents.length > 0 && (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          Assign Module
+                        </span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
             </div>
           </div>
         )}
