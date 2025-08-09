@@ -8,19 +8,85 @@ import { NotificationService } from '../utils/notificationService';
 // @desc    Get admin dashboard statistics
 // @route   GET /api/admin/dashboard
 // @access  Private (Admin only)
-export const getDashboard = async (_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const getDashboard = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Get statistics
-    const pendingRequestsCount = await PendingRequest.countDocuments({ status: 'pending' });
-    const activeUsersCount = await User.countDocuments({ status: 'active' });
-    const totalStudentsCount = await User.countDocuments({ role: 'student', status: 'active' });
-    const totalAdminsCount = await User.countDocuments({ role: 'admin', status: 'active' });
+    const userRole = req.user!.role;
+    const userId = req.user!.id;
+    const subAdminFilter = req.query.subAdminId as string; // For super admin filtering
 
-    // Get recent pending requests (last 10)
-    const recentPendingRequests = await PendingRequest.find({ status: 'pending' })
+    let pendingRequestsCount, activeUsersCount, totalStudentsCount, totalSubAdminsCount, totalSuperAdminsCount;
+    let recentPendingRequests: any[];
+
+    if (userRole === 'super_admin') {
+      // Super Admin can see all data, with optional filtering by sub admin
+      if (subAdminFilter) {
+        // Filter by specific sub admin
+        pendingRequestsCount = await PendingRequest.countDocuments({ 
+          $or: [
+            { status: 'pending' },
+            { assignedSubAdmin: subAdminFilter, status: 'assigned_to_sub_admin' }
+          ]
+        });
+        
+        totalStudentsCount = await User.countDocuments({ 
+          role: 'student', 
+          status: 'active',
+          assignedSubAdmin: subAdminFilter
+        });
+
+        recentPendingRequests = await PendingRequest.find({ 
+          $or: [
+            { status: 'pending' },
+            { assignedSubAdmin: subAdminFilter, status: 'assigned_to_sub_admin' }
+          ]
+        })
+        .populate('assignedSubAdmin', 'firstName lastName')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('firstName lastName email admissionDate createdAt status assignedSubAdmin');
+      } else {
+        // Show all data
+        pendingRequestsCount = await PendingRequest.countDocuments();
+        totalStudentsCount = await User.countDocuments({ role: 'student', status: 'active' });
+        
+        recentPendingRequests = await PendingRequest.find()
+          .populate('assignedSubAdmin', 'firstName lastName')
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .select('firstName lastName email admissionDate createdAt status assignedSubAdmin');
+      }
+
+      activeUsersCount = await User.countDocuments({ status: 'active' });
+      totalSubAdminsCount = await User.countDocuments({ role: 'sub_admin', status: 'active' });
+      totalSuperAdminsCount = await User.countDocuments({ role: 'super_admin', status: 'active' });
+
+    } else if (userRole === 'sub_admin') {
+      // Sub Admin can only see assigned students and requests
+      pendingRequestsCount = await PendingRequest.countDocuments({ 
+        assignedSubAdmin: userId,
+        status: 'assigned_to_sub_admin'
+      });
+      
+      totalStudentsCount = await User.countDocuments({ 
+        role: 'student', 
+        status: 'active',
+        assignedSubAdmin: userId
+      });
+
+      activeUsersCount = totalStudentsCount;
+      totalSubAdminsCount = 0; // Sub admin can't see other sub admins
+      totalSuperAdminsCount = 0; // Sub admin can't see super admins
+
+      recentPendingRequests = await PendingRequest.find({ 
+        assignedSubAdmin: userId,
+        status: 'assigned_to_sub_admin'
+      })
       .sort({ createdAt: -1 })
       .limit(10)
-      .select('firstName lastName email admissionDate createdAt');
+      .select('firstName lastName email admissionDate createdAt status');
+    } else {
+      return next(new AppError('Unauthorized access', 403));
+    }
 
     res.status(200).json({
       success: true,
@@ -29,10 +95,13 @@ export const getDashboard = async (_req: AuthenticatedRequest, res: Response, ne
           pendingRequests: pendingRequestsCount,
           activeUsers: activeUsersCount,
           totalStudents: totalStudentsCount,
-          totalAdmins: totalAdminsCount,
+          totalSubAdmins: totalSubAdminsCount,
+          totalSuperAdmins: totalSuperAdminsCount,
           totalUsers: activeUsersCount,
         },
         recentPendingRequests,
+        userRole,
+        canFilterBySubAdmin: userRole === 'super_admin',
       },
     });
   } catch (error) {
@@ -107,8 +176,8 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
     const { role } = req.body;
 
     // Validate role
-    if (!role || !['admin', 'student'].includes(role)) {
-      return next(new AppError('Valid role (admin or student) is required', 400));
+    if (!role || !['super_admin', 'sub_admin', 'student'].includes(role)) {
+      return next(new AppError('Valid role (super_admin, sub_admin, or student) is required', 400));
     }
 
     // Find the pending request (include password field)
@@ -282,7 +351,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
       ];
     }
 
-    if (role && ['admin', 'student'].includes(role)) {
+    if (role && ['super_admin', 'sub_admin', 'student'].includes(role)) {
       query.role = role;
     }
 
@@ -389,8 +458,8 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
     if (lastName) user.lastName = lastName;
     if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
     
-    if (role && ['admin', 'student'].includes(role)) {
-      user.role = role as 'admin' | 'student';
+    if (role && ['super_admin', 'sub_admin', 'student'].includes(role)) {
+      user.role = role as 'super_admin' | 'sub_admin' | 'student';
     }
 
     if (status && ['active', 'inactive'].includes(status)) {
@@ -468,8 +537,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response, next:
     }
 
     // Validate role
-    if (!['admin', 'student'].includes(role)) {
-      return next(new AppError('Valid role (admin or student) is required', 400));
+    if (!['super_admin', 'sub_admin', 'student'].includes(role)) {
+      return next(new AppError('Valid role (super_admin, sub_admin, or student) is required', 400));
     }
 
     // Check if user already exists with email
@@ -550,6 +619,178 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response, next:
     res.status(200).json({
       success: true,
       message: 'User deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Assign pending request to Sub Admin (Super Admin only)
+// @route   PUT /api/admin/assign-to-sub-admin/:id
+// @access  Private (Super Admin only)
+export const assignToSubAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { subAdminId } = req.body;
+
+    if (!subAdminId) {
+      return next(new AppError('Sub Admin ID is required', 400));
+    }
+
+    // Find the pending request
+    const pendingRequest = await PendingRequest.findById(id);
+    if (!pendingRequest) {
+      return next(new AppError('Pending request not found', 404));
+    }
+
+    // Verify sub admin exists and has correct role
+    const subAdmin = await User.findById(subAdminId);
+    if (!subAdmin || subAdmin.role !== 'sub_admin') {
+      return next(new AppError('Invalid Sub Admin', 400));
+    }
+
+    // Update pending request
+    pendingRequest.assignedSubAdmin = subAdminId;
+    pendingRequest.assignedBy = req.user!.id as any; // Cast to ObjectId
+    pendingRequest.assignedAt = new Date();
+    pendingRequest.status = 'assigned_to_sub_admin';
+    
+    await pendingRequest.save();
+
+    // Send notification to sub admin
+    try {
+      await NotificationService.notifySubAdminAssignment(subAdminId, pendingRequest._id.toString());
+    } catch (notificationError) {
+      console.error('Failed to send sub admin assignment notification:', notificationError);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Request assigned to Sub Admin successfully',
+      data: pendingRequest
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get all Sub Admins (Super Admin only)
+// @route   GET /api/admin/sub-admins
+// @access  Private (Super Admin only)
+export const getSubAdmins = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const search = req.query.search as string || '';
+    const status = req.query.status as string || '';
+
+    // Build query
+    let query: any = { role: 'sub_admin' };
+
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (status && ['active', 'inactive'].includes(status)) {
+      query.status = status;
+    }
+
+    // Get sub admins with pagination
+    const subAdmins = await User.find(query)
+      .populate('assignedBy', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .select('firstName lastName email phoneNumber status admissionDate createdAt assignedBy');
+
+    // Get total count for pagination
+    const totalCount = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        subAdmins,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create Sub Admin (Super Admin only)
+// @route   POST /api/admin/sub-admins
+// @access  Private (Super Admin only)
+export const createSubAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { firstName, lastName, email, phoneNumber, password } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phoneNumber || !password) {
+      return next(new AppError('All fields are required', 400));
+    }
+
+    // Check if user already exists with email
+    const existingUserEmail = await User.findOne({ email });
+    if (existingUserEmail) {
+      return next(new AppError('User with this email already exists', 400));
+    }
+
+    // Check if user already exists with phone number
+    const existingUserPhone = await User.findOne({ phoneNumber });
+    if (existingUserPhone) {
+      return next(new AppError('User with this phone number already exists', 400));
+    }
+
+    // Create new sub admin
+    const newSubAdmin = await User.create({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      password, // Will be hashed by the pre-save middleware
+      role: 'sub_admin',
+      status: 'active',
+      admissionDate: new Date(),
+      assignedBy: req.user!.id,
+    });
+
+    // Send welcome notification to the new sub admin
+    try {
+      const superAdmin = await User.findById(req.user!.id);
+      const superAdminName = superAdmin ? `${superAdmin.firstName} ${superAdmin.lastName}` : 'Super Admin';
+      await NotificationService.notifySubAdminCreation(newSubAdmin._id.toString(), superAdminName);
+    } catch (notificationError) {
+      console.error('Failed to send sub admin creation notification:', notificationError);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Sub Admin created successfully',
+      data: {
+        id: newSubAdmin._id,
+        firstName: newSubAdmin.firstName,
+        lastName: newSubAdmin.lastName,
+        email: newSubAdmin.email,
+        phoneNumber: newSubAdmin.phoneNumber,
+        role: newSubAdmin.role,
+        status: newSubAdmin.status,
+        admissionDate: newSubAdmin.admissionDate,
+        createdAt: newSubAdmin.createdAt,
+      },
     });
   } catch (error) {
     next(error);

@@ -9,7 +9,10 @@ export interface IPendingRequest extends Document {
   phoneNumber: string;
   password: string;
   admissionDate: Date;
-  status: 'pending';
+  status: 'pending' | 'assigned_to_sub_admin';
+  assignedSubAdmin?: mongoose.Types.ObjectId; // Sub Admin assigned by Super Admin
+  assignedBy?: mongoose.Types.ObjectId; // Super Admin who made the assignment
+  assignedAt?: Date; // When the assignment was made
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -72,8 +75,22 @@ const pendingRequestSchema = new Schema<IPendingRequest>(
     },
     status: {
       type: String,
-      enum: ['pending'],
+      enum: ['pending', 'assigned_to_sub_admin'],
       default: 'pending',
+    },
+    assignedSubAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
+    },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
+    },
+    assignedAt: {
+      type: Date,
+      default: undefined,
     },
   },
   {
@@ -89,6 +106,8 @@ const pendingRequestSchema = new Schema<IPendingRequest>(
 
 // Index for better query performance (email index is already created by unique: true)
 pendingRequestSchema.index({ status: 1, createdAt: -1 });
+pendingRequestSchema.index({ assignedSubAdmin: 1, status: 1 }); // For sub admin filtering
+pendingRequestSchema.index({ assignedBy: 1 }); // For super admin tracking
 
 // Hash password before saving
 pendingRequestSchema.pre('save', async function (next) {

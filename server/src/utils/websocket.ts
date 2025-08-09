@@ -205,7 +205,7 @@ export class WebSocketService {
   }
 
   private handleAdminBroadcast(socket: AuthenticatedSocket, data: { message: string; type: string }) {
-    if (socket.data.role === 'admin') {
+    if (['super_admin', 'sub_admin'].includes(socket.data.role)) {
       this.io.to('role:student').emit('admin:notification', {
         message: data.message,
         type: data.type,

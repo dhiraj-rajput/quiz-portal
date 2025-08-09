@@ -8,6 +8,7 @@ import {
   ChevronRight, 
   Send, 
   AlertCircle,
+  AlertTriangle,
   Maximize
 } from 'lucide-react';
 import { studentAPI, testAPI } from '../../utils/api';
@@ -60,8 +61,21 @@ const TestInterface: React.FC = () => {
   // Enhanced test environment
   const [focusMode, setFocusMode] = useState(false);
   const [fullscreenExitCount, setFullscreenExitCount] = useState(0);
-  const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
+
   const [wakeLock, setWakeLock] = useState<any>(null);
+  
+  // In-app notification system for fullscreen warnings
+  const [fullscreenNotification, setFullscreenNotification] = useState<{
+    show: boolean;
+    message: string;
+    remainingWarnings: number;
+    isAutoSubmitting: boolean;
+  }>({
+    show: false,
+    message: '',
+    remainingWarnings: 3,
+    isAutoSubmitting: false
+  });
 
   // Load test data and assignment
   useEffect(() => {
@@ -190,16 +204,13 @@ const TestInterface: React.FC = () => {
             const newCount = prev + 1;
             
             if (newCount >= 3) {
-              // Auto-submit test after 3 exits
-              showError('Test will be submitted automatically due to multiple fullscreen exits.');
-              
-              // Create a notification if permission was granted
-              if (Notification.permission === 'granted') {
-                new Notification('Test Auto-Submit', {
-                  body: 'Your test is being submitted due to multiple fullscreen exits.',
-                  icon: '/favicon.ico'
-                });
-              }
+              // Show final warning with auto-submit notification
+              setFullscreenNotification({
+                show: true,
+                message: 'You have exited fullscreen mode 3 times. Your test will be auto-submitted in 5 seconds.',
+                remainingWarnings: 0,
+                isAutoSubmitting: true
+              });
               
               // Release wake lock before submission
               if (wakeLock) {
@@ -207,26 +218,28 @@ const TestInterface: React.FC = () => {
                 setWakeLock(null);
               }
               
-              // Auto-submit after 3 seconds to give user time to see the warning
+              // Auto-submit after 5 seconds to show the warning
               setTimeout(() => {
                 if (submitTestRef.current) {
                   submitTestRef.current();
                 }
-              }, 3000);
+              }, 5000);
               
               return newCount;
             } else {
-              // Show warning and attempt to re-enter fullscreen
-              setShowFullscreenWarning(true);
-              showWarning(`Warning: You exited fullscreen mode. ${3 - newCount} exits remaining before auto-submission.`);
+              // Show warning notification
+              const remainingWarnings = 3 - newCount;
+              setFullscreenNotification({
+                show: true,
+                message: `Warning: You exited fullscreen mode. You have ${remainingWarnings} warning${remainingWarnings !== 1 ? 's' : ''} remaining before auto-submission.`,
+                remainingWarnings,
+                isAutoSubmitting: false
+              });
               
-              // Create a notification if permission was granted
-              if (Notification.permission === 'granted') {
-                new Notification('Fullscreen Exit Warning', {
-                  body: `${3 - newCount} exits remaining before auto-submission.`,
-                  icon: '/favicon.ico'
-                });
-              }
+              // Hide notification after 8 seconds
+              setTimeout(() => {
+                setFullscreenNotification(prev => ({ ...prev, show: false }));
+              }, 8000);
               
               // Try to re-enter fullscreen after a short delay
               setTimeout(() => {
@@ -241,17 +254,15 @@ const TestInterface: React.FC = () => {
                     }
                   } catch (error) {
                     console.log('Failed to re-enter fullscreen:', error);
-                    // If we can't re-enter fullscreen, show a more persistent warning
-                    showWarning('Unable to re-enter fullscreen. Please use F11 or your browser\'s fullscreen option.');
+                    // Update notification to show manual fullscreen instruction
+                    setFullscreenNotification(prev => ({
+                      ...prev,
+                      message: `${prev.message} Please press F11 or use your browser's fullscreen option to continue.`
+                    }));
                   }
                 };
                 enterFullscreen();
               }, 1500);
-              
-              // Hide warning after 10 seconds
-              setTimeout(() => {
-                setShowFullscreenWarning(false);
-              }, 10000);
               
               return newCount;
             }
@@ -262,7 +273,8 @@ const TestInterface: React.FC = () => {
       const handleVisibilityChange = () => {
         // Detect when user switches tabs/apps
         if (document.hidden) {
-          showWarning('Warning: Switching tabs or applications during the test is not recommended.');
+          // Note: We could add a similar in-app notification for tab switching if needed
+          console.log('User switched tabs/applications during test');
         }
       };
 
@@ -1079,19 +1091,6 @@ const TestInterface: React.FC = () => {
 
     return (
       <div className="test-interface-container">
-        {/* Fullscreen Exit Warning */}
-        {showFullscreenWarning && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border-2 border-red-700">
-            <div className="flex items-center space-x-2">
-              <span className="text-xl">⚠️</span>
-              <div>
-                <p className="font-semibold">Fullscreen Exit Warning!</p>
-                <p className="text-sm">Stay in fullscreen mode to avoid auto-submission. {3 - fullscreenExitCount} exits remaining.</p>
-              </div>
-            </div>
-          </div>
-        )}
-        
         {/* Header with timer and progress */}
         <div className="test-header">
           <div className="test-header-content">
@@ -1203,6 +1202,56 @@ const TestInterface: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Fullscreen Warning Notification */}
+        {fullscreenNotification.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className={`max-w-md mx-4 p-8 rounded-2xl shadow-2xl ${
+              fullscreenNotification.isAutoSubmitting 
+                ? 'bg-red-600 text-white' 
+                : 'bg-yellow-500 text-black'
+            }`}>
+              <div className="text-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  fullscreenNotification.isAutoSubmitting 
+                    ? 'bg-white bg-opacity-20' 
+                    : 'bg-black bg-opacity-20'
+                }`}>
+                  {fullscreenNotification.isAutoSubmitting ? (
+                    <AlertTriangle className="h-8 w-8" />
+                  ) : (
+                    <AlertCircle className="h-8 w-8" />
+                  )}
+                </div>
+                <h3 className={`text-xl font-bold mb-4 ${
+                  fullscreenNotification.isAutoSubmitting ? 'text-white' : 'text-black'
+                }`}>
+                  {fullscreenNotification.isAutoSubmitting ? 'Auto-Submission Warning' : 'Fullscreen Exit Warning'}
+                </h3>
+                <p className={`text-lg mb-6 leading-relaxed ${
+                  fullscreenNotification.isAutoSubmitting ? 'text-white' : 'text-black'
+                }`}>
+                  {fullscreenNotification.message}
+                </p>
+                {!fullscreenNotification.isAutoSubmitting && (
+                  <div className="flex justify-center">
+                    <div className="bg-black bg-opacity-20 rounded-full px-4 py-2">
+                      <span className="font-bold text-lg">
+                        {fullscreenNotification.remainingWarnings} warning{fullscreenNotification.remainingWarnings !== 1 ? 's' : ''} remaining
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {fullscreenNotification.isAutoSubmitting && (
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mr-3"></div>
+                    <span className="text-lg font-semibold">Submitting test...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Navigation Footer */}
         <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">

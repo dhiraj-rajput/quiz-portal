@@ -4,9 +4,11 @@ export interface User {
   lastName: string;
   email: string;
   phoneNumber?: string;
-  role: 'admin' | 'student';
+  role: 'super_admin' | 'sub_admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: string;
+  assignedSubAdmin?: string;
+  assignedBy?: string;
   createdAt: string;
 }
 
@@ -17,7 +19,10 @@ export interface PendingRequest {
   email: string;
   phoneNumber?: string;
   admissionDate: string;
-  status: 'pending';
+  status: 'pending' | 'assigned_to_sub_admin';
+  assignedSubAdmin?: string;
+  assignedBy?: string;
+  assignedAt?: string;
   createdAt: string;
 }
 

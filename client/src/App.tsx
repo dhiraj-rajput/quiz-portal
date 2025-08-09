@@ -40,7 +40,7 @@ const RoleBasedRedirect = () => {
     return <Navigate to="/login" replace />;
   }
   
-  if (user.role === 'admin') {
+  if (user.role === 'super_admin' || user.role === 'sub_admin') {
     return <Navigate to="/admin" replace />;
   } else if (user.role === 'student') {
     return <Navigate to="/student" replace />;

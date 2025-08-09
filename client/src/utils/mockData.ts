@@ -8,7 +8,7 @@ export const initializeMockData = () => {
     firstName: 'Admin',
     lastName: 'User',
     email: 'admin@example.com',
-    role: 'admin',
+    role: 'super_admin',
     status: 'active',
     admissionDate: '2024-01-01',
     createdAt: '2024-01-01T00:00:00Z'

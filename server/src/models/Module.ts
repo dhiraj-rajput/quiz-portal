@@ -16,6 +16,7 @@ export interface IModule extends Document {
   description: string;
   files: IModuleFile[];
   createdBy: mongoose.Types.ObjectId;
+  assignedSubAdmin?: mongoose.Types.ObjectId; // For partitioning by sub admin
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +70,20 @@ const moduleSchema = new Schema<IModule>(
       ref: 'User',
       required: [true, 'Creator is required'],
     },
+    assignedSubAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
+      validate: {
+        validator: async function(value: mongoose.Types.ObjectId) {
+          if (!value) return true;
+          const User = mongoose.model('User');
+          const subAdmin = await User.findById(value);
+          return subAdmin && (subAdmin.role === 'sub_admin' || subAdmin.role === 'super_admin');
+        },
+        message: 'Assigned sub admin must have sub_admin or super_admin role'
+      }
+    },
   },
   {
     timestamps: true,
@@ -78,6 +93,7 @@ const moduleSchema = new Schema<IModule>(
 // Indexes for better query performance
 moduleSchema.index({ title: 'text', description: 'text' });
 moduleSchema.index({ createdBy: 1, createdAt: -1 });
+moduleSchema.index({ assignedSubAdmin: 1, createdAt: -1 }); // For sub admin filtering
 
 const Module = mongoose.model<IModule>('Module', moduleSchema);
 

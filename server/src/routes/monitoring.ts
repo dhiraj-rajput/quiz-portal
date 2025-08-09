@@ -30,7 +30,7 @@ router.get('/health', async (_req, res) => {
 });
 
 // System metrics endpoint - admin only
-router.get('/metrics', protect, restrictTo('admin'), (_req, res) => {
+router.get('/metrics', protect, restrictTo('super_admin', 'sub_admin'), (_req, res) => {
   try {
     const performanceMetrics = PerformanceMonitor.getInstance().getMetrics();
     const systemMetrics = healthCheck.getSystemMetrics();
@@ -49,7 +49,7 @@ router.get('/metrics', protect, restrictTo('admin'), (_req, res) => {
 });
 
 // Reset metrics endpoint - admin only
-router.post('/metrics/reset', protect, restrictTo('admin'), (req, res) => {
+router.post('/metrics/reset', protect, restrictTo('super_admin', 'sub_admin'), (req, res) => {
   try {
     PerformanceMonitor.getInstance().reset();
     logger.info('Performance metrics reset', {
@@ -70,7 +70,7 @@ router.post('/metrics/reset', protect, restrictTo('admin'), (req, res) => {
 });
 
 // Detailed health check - admin only
-router.get('/health/detailed', protect, restrictTo('admin'), async (_req, res) => {
+router.get('/health/detailed', protect, restrictTo('super_admin', 'sub_admin'), async (_req, res) => {
   try {
     const dbHealth = await healthCheck.checkDatabase();
     const servicesHealth = await healthCheck.checkExternalServices();
@@ -95,7 +95,7 @@ router.get('/health/detailed', protect, restrictTo('admin'), async (_req, res) =
 });
 
 // Security audit endpoint - admin only
-router.get('/security/audit', protect, restrictTo('admin'), async (req, res) => {
+router.get('/security/audit', protect, restrictTo('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const auditResult = await performSecurityAudit();
     

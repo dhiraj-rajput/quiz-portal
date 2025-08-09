@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import PendingRequest from '../models/PendingRequest';
-import OTPVerification from '../models/OTPVerification';
 import { AppError } from '../middleware/errorHandler';
 import { AuthenticatedRequest, generateToken, generateRefreshToken } from '../middleware/auth';
 import { NotificationService } from '../utils/notificationService';
@@ -40,16 +39,6 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       return next(new AppError('All fields are required', 400));
     }
 
-    // Check if phone number is verified
-    const phoneVerification = await OTPVerification.findOne({
-      phoneNumber,
-      verified: true
-    }).sort({ createdAt: -1 });
-
-    if (!phoneVerification) {
-      return next(new AppError('Phone number must be verified before registration', 400));
-    }
-
     // Check if user already exists in either collection
     const existingUser = await User.findOne({ 
       $or: [{ email }, { phoneNumber }] 
@@ -75,7 +64,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       }
     }
 
-    // Create pending request
+    // Create pending request (automatically goes to Super Admin)
     const pendingRequest = await PendingRequest.create({
       firstName,
       lastName,
@@ -83,6 +72,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       phoneNumber,
       password,
       admissionDate,
+      status: 'pending' // This will be reviewed by Super Admin first
     });
 
     res.status(201).json({

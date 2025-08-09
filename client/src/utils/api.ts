@@ -232,6 +232,7 @@ export const adminAPI = {
     password: string;
     role: string;
     admissionDate: string;
+    assignedSubAdmin?: string;
   }) => api.post<ApiResponse>('/admin/users', userData),
 
   updateUser: (id: string, userData: any) =>

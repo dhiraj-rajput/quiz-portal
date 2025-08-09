@@ -7,9 +7,11 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
-    role: 'admin' | 'student';
+    role: 'super_admin' | 'sub_admin' | 'student';
     firstName: string;
     lastName: string;
+    assignedSubAdmin?: string;
+    assignedBy?: string;
   };
   files?: any[];
   file?: any;
@@ -54,6 +56,8 @@ export const protect = async (
       role: currentUser.role,
       firstName: currentUser.firstName,
       lastName: currentUser.lastName,
+      assignedSubAdmin: currentUser.assignedSubAdmin?.toString(),
+      assignedBy: currentUser.assignedBy?.toString(),
     };
 
     next();

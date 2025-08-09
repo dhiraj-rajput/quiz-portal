@@ -25,6 +25,7 @@ export interface IMockTest extends Document {
   timeLimit: number; // in minutes
   isPublished: boolean;
   createdBy: mongoose.Types.ObjectId;
+  assignedSubAdmin?: mongoose.Types.ObjectId; // For partitioning by sub admin
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,6 +134,20 @@ const mockTestSchema = new Schema<IMockTest>(
       ref: 'User',
       required: [true, 'Creator is required'],
     },
+    assignedSubAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
+      validate: {
+        validator: async function(value: mongoose.Types.ObjectId) {
+          if (!value) return true;
+          const User = mongoose.model('User');
+          const subAdmin = await User.findById(value);
+          return subAdmin && (subAdmin.role === 'sub_admin' || subAdmin.role === 'super_admin');
+        },
+        message: 'Assigned sub admin must have sub_admin or super_admin role'
+      }
+    },
   },
   {
     timestamps: true,
@@ -150,6 +165,7 @@ mockTestSchema.pre('save', function (next) {
 mockTestSchema.index({ title: 'text', description: 'text' });
 mockTestSchema.index({ createdBy: 1, createdAt: -1 });
 mockTestSchema.index({ isPublished: 1 });
+mockTestSchema.index({ assignedSubAdmin: 1, createdAt: -1 }); // For sub admin filtering
 
 const MockTest = mongoose.model<IMockTest>('MockTest', mockTestSchema);
 

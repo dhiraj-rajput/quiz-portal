@@ -9,9 +9,11 @@ export interface IUser extends Document {
   phoneNumber: string;
   phoneVerified: boolean;
   password: string;
-  role: 'admin' | 'student';
+  role: 'super_admin' | 'sub_admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: Date;
+  assignedSubAdmin?: mongoose.Types.ObjectId; // For students - which sub admin they're assigned to
+  assignedBy?: mongoose.Types.ObjectId; // For sub admins - which super admin assigned them
   passwordResetToken?: string;
   passwordResetExpires?: Date;
   createdAt: Date;
@@ -70,8 +72,38 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['admin', 'student'],
+      enum: ['super_admin', 'sub_admin', 'student'],
       default: 'student',
+    },
+    assignedSubAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
+      validate: {
+        validator: async function(this: IUser, value: mongoose.Types.ObjectId) {
+          if (!value || this.role !== 'student') return true;
+          // Validate that assigned sub admin actually has sub_admin role
+          const User = mongoose.model('User');
+          const subAdmin = await User.findById(value);
+          return subAdmin && subAdmin.role === 'sub_admin';
+        },
+        message: 'Assigned sub admin must have sub_admin role'
+      }
+    },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
+      validate: {
+        validator: async function(this: IUser, value: mongoose.Types.ObjectId) {
+          if (!value || this.role !== 'sub_admin') return true;
+          // Validate that assignedBy user has super_admin role
+          const User = mongoose.model('User');
+          const superAdmin = await User.findById(value);
+          return superAdmin && superAdmin.role === 'super_admin';
+        },
+        message: 'AssignedBy user must have super_admin role'
+      }
     },
     status: {
       type: String,
@@ -116,6 +148,8 @@ const userSchema = new Schema<IUser>(
 
 // Index for better query performance - email index is already created by unique: true
 userSchema.index({ role: 1, status: 1 });
+userSchema.index({ assignedSubAdmin: 1 }); // For efficient sub admin filtering
+userSchema.index({ assignedBy: 1 }); // For efficient super admin filtering
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

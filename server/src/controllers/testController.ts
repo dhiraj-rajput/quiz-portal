@@ -273,8 +273,8 @@ export const updateTest = async (req: AuthenticatedRequest, res: Response, next:
       return next(new AppError('Test not found', 404));
     }
 
-    // Check if user is the creator or admin
-    if (req.user!.role !== 'admin' && test.createdBy.toString() !== req.user!.id) {
+    // Check if user is the creator or has admin privileges
+    if (!['super_admin', 'sub_admin'].includes(req.user!.role) && test.createdBy.toString() !== req.user!.id) {
       return next(new AppError('You can only update tests you created', 403));
     }
 
@@ -319,8 +319,8 @@ export const deleteTest = async (req: AuthenticatedRequest, res: Response, next:
       return next(new AppError('Test not found', 404));
     }
 
-    // Check if user is the creator or admin
-    if (req.user!.role !== 'admin' && test.createdBy.toString() !== req.user!.id) {
+    // Check if user is the creator or has admin privileges
+    if (!['super_admin', 'sub_admin'].includes(req.user!.role) && test.createdBy.toString() !== req.user!.id) {
       return next(new AppError('You can only delete tests you created', 403));
     }
 

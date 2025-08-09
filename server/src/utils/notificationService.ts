@@ -104,4 +104,16 @@ export class NotificationService {
     await this.notifyAllUsers(userIds, 'info', 'New Feature Available', 
       `${featureName}: ${description}`, 'system');
   }
+
+  // Sub Admin assignment notifications
+  static async notifySubAdminAssignment(subAdminId: string, requestId: string) {
+    await createNotification(subAdminId, 'info', 'New Request Assignment', 
+      `A new student registration request has been assigned to you for review`, 'system');
+  }
+
+  // Sub Admin creation notifications
+  static async notifySubAdminCreation(subAdminId: string, createdBy: string) {
+    await createNotification(subAdminId, 'success', 'Sub Admin Account Created', 
+      `Your Sub Admin account has been created by ${createdBy}. Welcome to Quiz Portal!`, 'system');
+  }
 }

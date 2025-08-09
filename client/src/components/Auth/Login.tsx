@@ -33,7 +33,7 @@ const Login: React.FC = () => {
       if (result.success) {
         // Get user from auth context to redirect appropriately
         const users = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        navigate(users?.role === 'admin' ? '/admin' : '/student');
+        navigate(['super_admin', 'sub_admin'].includes(users?.role) ? '/admin' : '/student');
       } else {
         setError(result.error || 'Login failed. Please check your credentials.');
       }

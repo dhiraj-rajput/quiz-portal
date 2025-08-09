@@ -34,8 +34,9 @@ export const getModules = async (req: AuthenticatedRequest, res: Response, next:
     const search = req.query.search as string || '';
     const sortBy = req.query.sortBy as string || 'createdAt';
     const sortOrder = req.query.sortOrder as string || 'desc';
+    const subAdminFilter = req.query.subAdminId as string; // For super admin filtering
 
-    // Build query
+    // Build query based on user role
     let query: any = {};
 
     if (search) {
@@ -45,8 +46,9 @@ export const getModules = async (req: AuthenticatedRequest, res: Response, next:
       ];
     }
 
-    // If user is student, only show modules assigned to them
+    // Role-based filtering
     if (req.user!.role === 'student') {
+      // Students: only show modules assigned to them
       const assignments = await ModuleAssignment.find({
         assignedTo: req.user!.id,
         isActive: true,
@@ -54,6 +56,21 @@ export const getModules = async (req: AuthenticatedRequest, res: Response, next:
       
       const moduleIds = assignments.map(assignment => assignment.moduleId);
       query._id = { $in: moduleIds };
+    } else if (req.user!.role === 'sub_admin') {
+      // Sub Admin: only show modules they created or assigned to their students
+      query.$or = [
+        { createdBy: req.user!.id },
+        { assignedSubAdmin: req.user!.id }
+      ];
+    } else if (req.user!.role === 'super_admin') {
+      // Super Admin: show all modules, but can filter by sub admin
+      if (subAdminFilter) {
+        query.$or = [
+          { createdBy: subAdminFilter },
+          { assignedSubAdmin: subAdminFilter }
+        ];
+      }
+      // If no filter, show all modules
     }
 
     // Build sort object
@@ -62,7 +79,8 @@ export const getModules = async (req: AuthenticatedRequest, res: Response, next:
 
     // Get modules with pagination
     const modules = await Module.find(query)
-      .populate('createdBy', 'firstName lastName')
+      .populate('createdBy', 'firstName lastName role')
+      .populate('assignedSubAdmin', 'firstName lastName')
       .sort(sort)
       .skip(skip)
       .limit(limit);
@@ -151,12 +169,19 @@ export const createModule = async (req: AuthenticatedRequest, res: Response, nex
       uploadedAt: new Date(),
     }));
 
+    // Determine assigned sub admin based on creator role
+    let assignedSubAdmin = undefined;
+    if (req.user!.role === 'sub_admin') {
+      assignedSubAdmin = req.user!.id;
+    }
+
     // Create module
     const module = await Module.create({
       title,
       description,
       files: moduleFiles,
       createdBy: req.user!.id,
+      assignedSubAdmin,
     });
 
     // Populate creator info
@@ -188,8 +213,8 @@ export const updateModule = async (req: AuthenticatedRequest, res: Response, nex
       return next(new AppError('Module not found', 404));
     }
 
-    // Check if user is the creator or admin
-    if (req.user!.role !== 'admin' && module.createdBy.toString() !== req.user!.id) {
+    // Check if user is the creator or has admin privileges
+    if (!['super_admin', 'sub_admin'].includes(req.user!.role) && module.createdBy.toString() !== req.user!.id) {
       return next(new AppError('You can only update modules you created', 403));
     }
 
@@ -241,8 +266,8 @@ export const deleteModule = async (req: AuthenticatedRequest, res: Response, nex
       return next(new AppError('Module not found', 404));
     }
 
-    // Check if user is the creator or admin
-    if (req.user!.role !== 'admin' && module.createdBy.toString() !== req.user!.id) {
+    // Check if user is the creator or has admin privileges
+    if (!['super_admin', 'sub_admin'].includes(req.user!.role) && module.createdBy.toString() !== req.user!.id) {
       return next(new AppError('You can only delete modules you created', 403));
     }
 
@@ -463,8 +488,8 @@ export const removeModuleFile = async (req: AuthenticatedRequest, res: Response,
       return next(new AppError('Module not found', 404));
     }
 
-    // Check if user is the creator or admin
-    if (req.user!.role !== 'admin' && module.createdBy.toString() !== req.user!.id) {
+    // Check if user is the creator or has admin privileges
+    if (!['super_admin', 'sub_admin'].includes(req.user!.role) && module.createdBy.toString() !== req.user!.id) {
       return next(new AppError('You can only modify modules you created', 403));
     }
 

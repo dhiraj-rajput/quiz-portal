@@ -11,7 +11,7 @@ interface UserProfile {
   lastName: string;
   email: string;
   phoneNumber?: string;
-  role: 'admin' | 'student';
+  role: 'super_admin' | 'sub_admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: string;
   createdAt: string;
@@ -165,7 +165,7 @@ const UserProfilePage: React.FC = () => {
                 </h1>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    (user.role || 'student') === 'admin' 
+                    ['super_admin', 'sub_admin'].includes(user.role || 'student') 
                       ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
                       : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                   }`}>

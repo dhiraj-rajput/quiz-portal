@@ -5,7 +5,7 @@ import '../../styles/Common.css';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'student';
+  requiredRole?: 'super_admin' | 'sub_admin' | 'admin' | 'student';
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
@@ -27,8 +27,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/student'} replace />;
+  if (requiredRole) {
+    let hasAccess = false;
+
+    // Check role-based access
+    if (requiredRole === 'admin') {
+      // Legacy 'admin' role - allow both super_admin and sub_admin
+      hasAccess = user.role === 'super_admin' || user.role === 'sub_admin';
+    } else {
+      // Specific role required
+      hasAccess = user.role === requiredRole;
+    }
+
+    if (!hasAccess) {
+      // Redirect to appropriate dashboard based on user role
+      const redirectPath = ['super_admin', 'sub_admin'].includes(user.role) ? '/admin' : '/student';
+      return <Navigate to={redirectPath} replace />;
+    }
   }
 
   return <>{children}</>;

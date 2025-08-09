@@ -39,7 +39,7 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center">
-            <Link to={user.role === 'admin' ? '/admin' : '/student'} className="flex items-center space-x-2">
+            <Link to={['super_admin', 'sub_admin'].includes(user.role) ? '/admin' : '/student'} className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <span className="text-xl font-bold text-gray-900 dark:text-white">
                 Quiz Portal
@@ -51,7 +51,7 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-4">
             {/* Navigation Links */}
             <div className="flex items-center space-x-4">
-              {user.role === 'admin' ? (
+              {['super_admin', 'sub_admin'].includes(user.role) ? (
                 <>
                   <Link
                     to="/admin"
@@ -183,7 +183,7 @@ const Navbar: React.FC = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200 dark:border-gray-700">
-              {user.role === 'admin' ? (
+              {['super_admin', 'sub_admin'].includes(user.role) ? (
                 <>
                   <Link
                     to="/admin"

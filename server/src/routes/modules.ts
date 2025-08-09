@@ -35,7 +35,7 @@ router.get('/:id', validateMongoId, getModuleById);
 // POST /api/modules - Create new module (Admin only)
 router.post(
   '/',
-  authorize('admin'),
+  authorize('super_admin', 'sub_admin'),
   uploadModuleFiles,
   handleMulterError,
   validateCreateModule,
@@ -45,7 +45,7 @@ router.post(
 // PUT /api/modules/:id - Update module (Admin only)
 router.put(
   '/:id',
-  authorize('admin'),
+  authorize('super_admin', 'sub_admin'),
   uploadModuleFiles,
   handleMulterError,
   validateUpdateModule,
@@ -53,18 +53,18 @@ router.put(
 );
 
 // DELETE /api/modules/:id - Delete module (Admin only)
-router.delete('/:id', authorize('admin'), validateMongoId, deleteModule);
+router.delete('/:id', authorize('super_admin', 'sub_admin'), validateMongoId, deleteModule);
 
 // GET /api/modules/assignments - Get all module assignments (Admin only)
-router.get('/assignments', authorize('admin'), validatePagination, getModuleAssignments);
+router.get('/assignments', authorize('super_admin', 'sub_admin'), validatePagination, getModuleAssignments);
 
 // GET /api/modules/:id/assignments - Get assignment for specific module (Admin only)
-router.get('/:id/assignments', authorize('admin'), validateMongoId, getModuleAssignment);
+router.get('/:id/assignments', authorize('super_admin', 'sub_admin'), validateMongoId, getModuleAssignment);
 
 // POST /api/modules/:id/assign - Assign module to students (Admin only)
-router.post('/:id/assign', authorize('admin'), validateAssignModule, assignModule);
+router.post('/:id/assign', authorize('super_admin', 'sub_admin'), validateAssignModule, assignModule);
 
 // DELETE /api/modules/:id/files/:fileId - Remove file from module (Admin only)
-router.delete('/:id/files/:fileId', authorize('admin'), validateFileId, removeModuleFile);
+router.delete('/:id/files/:fileId', authorize('super_admin', 'sub_admin'), validateFileId, removeModuleFile);
 
 export default router;

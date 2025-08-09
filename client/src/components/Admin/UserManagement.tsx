@@ -9,9 +9,11 @@ interface User {
   lastName: string;
   email: string;
   phoneNumber?: string;
-  role: 'admin' | 'student';
+  role: 'super_admin' | 'sub_admin' | 'student';
   status: 'active' | 'inactive';
   admissionDate: string;
+  assignedSubAdmin?: string;
+  assignedBy?: string;
   createdAt: string;
 }
 
@@ -22,6 +24,9 @@ interface PendingRequest {
   email: string;
   phoneNumber?: string;
   admissionDate: string;
+  status: string;
+  assignedSubAdmin?: string;
+  assignedBy?: string;
   createdAt: string;
 }
 
@@ -31,10 +36,11 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'pending'>('users');
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'student'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'super_admin' | 'sub_admin' | 'student'>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUserDetailModal, setShowUserDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [subAdmins, setSubAdmins] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<Partial<User>>({});
   const [passwordEdit, setPasswordEdit] = useState({ newPassword: '', confirmPassword: '', changePassword: false });
   const { showSuccess, showError } = useNotifications();
@@ -45,8 +51,9 @@ const UserManagement: React.FC = () => {
     phoneNumber: '',
     password: '',
     confirmPassword: '',
-    role: 'student' as 'admin' | 'student',
-    admissionDate: ''
+    role: 'student' as 'super_admin' | 'sub_admin' | 'student',
+    admissionDate: '',
+    assignedSubAdmin: ''
   });
 
   useEffect(() => {
@@ -62,9 +69,13 @@ const UserManagement: React.FC = () => {
       ]);
       
       if (usersResponse.success && usersResponse.data && usersResponse.data.users) {
-        setUsers(usersResponse.data.users);
+        const allUsers = usersResponse.data.users;
+        setUsers(allUsers);
+        // Set sub admins for assignment dropdown
+        setSubAdmins(allUsers.filter((user: User) => user.role === 'sub_admin'));
       } else {
         setUsers([]);
+        setSubAdmins([]);
       }
       
       if (pendingResponse.success && pendingResponse.data && pendingResponse.data.requests) {
@@ -75,6 +86,7 @@ const UserManagement: React.FC = () => {
     } catch (error) {
       console.error('Error loading data:', error);
       setUsers([]);
+      setSubAdmins([]);
       setPendingRequests([]);
     } finally {
       setLoading(false);
@@ -121,7 +133,8 @@ const UserManagement: React.FC = () => {
         phoneNumber: newUser.phoneNumber,
         password: newUser.password,
         role: newUser.role,
-        admissionDate: newUser.admissionDate
+        admissionDate: newUser.admissionDate,
+        assignedSubAdmin: newUser.assignedSubAdmin || undefined
       });
       
       setShowCreateModal(false);
@@ -133,26 +146,14 @@ const UserManagement: React.FC = () => {
         password: '',
         confirmPassword: '',
         role: 'student',
-        admissionDate: ''
+        admissionDate: '',
+        assignedSubAdmin: ''
       });
       await loadData();
       showSuccess('User Created', 'User created successfully!');
     } catch (error) {
       console.error('Error creating user:', error);
       showError('Creation Failed', 'Failed to create user');
-    }
-  };
-
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'student') => {
-    if (window.confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
-      try {
-        await adminAPI.updateUser(userId, { role: newRole });
-        await loadData();
-        showSuccess('Role Updated', 'User role updated successfully!');
-      } catch (error) {
-        console.error('Error updating user role:', error);
-        showError('Update Failed', 'Failed to update user role');
-      }
     }
   };
 
@@ -315,11 +316,12 @@ const UserManagement: React.FC = () => {
               <div className="sm:w-48">
                 <select
                   value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value as 'all' | 'admin' | 'student')}
+                  onChange={(e) => setRoleFilter(e.target.value as 'all' | 'super_admin' | 'sub_admin' | 'student')}
                   className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
                 >
                   <option value="all">All Roles</option>
-                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                  <option value="sub_admin">Sub Admin</option>
                   <option value="student">Student</option>
                 </select>
               </div>
@@ -354,7 +356,7 @@ const UserManagement: React.FC = () => {
                                 {user.firstName} {user.lastName}
                               </button>
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium self-start sm:self-auto ${
-                                user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                ['super_admin', 'sub_admin'].includes(user.role) ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                               }`}>
                                 {user.role}
                               </span>
@@ -378,15 +380,13 @@ const UserManagement: React.FC = () => {
                           </span>
                           
                           <div className="flex items-center space-x-2">
-                            {/* Role Change Dropdown */}
-                            <select
-                              value={user.role}
-                              onChange={(e) => handleRoleChange(user._id, e.target.value as 'admin' | 'student')}
-                              className="text-xs px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
+                            {/* View Details Button */}
+                            <button
+                              onClick={() => handleViewUserDetails(user)}
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
                             >
-                              <option value="admin">Admin</option>
-                              <option value="student">Student</option>
-                            </select>
+                              View Details
+                            </button>
                             
                             {/* Delete Button */}
                             <button
@@ -588,12 +588,13 @@ const UserManagement: React.FC = () => {
                     </label>
                     <select
                       value={newUser.role}
-                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'admin' | 'student' })}
+                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'super_admin' | 'sub_admin' | 'student' })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                       required
                     >
                       <option value="student">Student</option>
-                      <option value="admin">Admin</option>
+                      <option value="sub_admin">Sub Admin</option>
+                      <option value="super_admin">Super Admin</option>
                     </select>
                   </div>
                   
@@ -610,6 +611,30 @@ const UserManagement: React.FC = () => {
                     />
                   </div>
                 </div>
+                
+                {/* Sub Admin Assignment - Only show for students */}
+                {newUser.role === 'student' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Assign to Sub Admin
+                    </label>
+                    <select
+                      value={newUser.assignedSubAdmin}
+                      onChange={(e) => setNewUser({ ...newUser, assignedSubAdmin: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">No Sub Admin Assignment</option>
+                      {subAdmins.map((subAdmin) => (
+                        <option key={subAdmin._id} value={subAdmin._id}>
+                          {subAdmin.firstName} {subAdmin.lastName} ({subAdmin.email})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Assign this student to a Sub Admin for content management.
+                    </p>
+                  </div>
+                )}
                 
                 <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
                   <button
@@ -711,11 +736,12 @@ const UserManagement: React.FC = () => {
                     </label>
                     <select
                       value={editingUser.role || 'student'}
-                      onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as 'admin' | 'student' })}
+                      onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as 'super_admin' | 'sub_admin' | 'student' })}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="student">Student</option>
-                      <option value="admin">Admin</option>
+                      <option value="sub_admin">Sub Admin</option>
+                      <option value="super_admin">Super Admin</option>
                     </select>
                   </div>
 
@@ -733,6 +759,30 @@ const UserManagement: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* Sub Admin Assignment - Only show for students */}
+                {editingUser.role === 'student' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Assigned Sub Admin
+                    </label>
+                    <select
+                      value={editingUser.assignedSubAdmin || ''}
+                      onChange={(e) => setEditingUser({ ...editingUser, assignedSubAdmin: e.target.value || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">No Sub Admin Assigned</option>
+                      {subAdmins.map((subAdmin) => (
+                        <option key={subAdmin._id} value={subAdmin._id}>
+                          {subAdmin.firstName} {subAdmin.lastName} ({subAdmin.email})
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Students can only be assigned to one Sub Admin who will manage their content and assessments.
+                    </p>
+                  </div>
+                )}
 
                 {/* Password Change Section */}
                 <div className="border-t border-gray-200 dark:border-gray-600 pt-6">

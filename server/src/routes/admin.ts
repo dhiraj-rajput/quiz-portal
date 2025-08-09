@@ -10,13 +10,16 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  assignToSubAdmin,
+  getSubAdmins,
+  createSubAdmin,
 } from '../controllers/adminController';
 
 const router = express.Router();
 
-// All admin routes require authentication and admin role
+// All admin routes require authentication and admin/sub_admin role
 router.use(protect);
-router.use(restrictTo('admin'));
+router.use(restrictTo('super_admin', 'sub_admin'));
 
 // Admin dashboard and statistics
 router.get('/dashboard', getDashboard);
@@ -33,5 +36,10 @@ router.delete('/users/:id', deleteUser);
 router.get('/pending-requests', getPendingRequests);
 router.put('/approve-user/:id', approveUser);
 router.delete('/reject-user/:id', rejectUser);
+
+// Super Admin only routes
+router.put('/assign-to-sub-admin/:id', restrictTo('super_admin'), assignToSubAdmin);
+router.get('/sub-admins', restrictTo('super_admin'), getSubAdmins);
+router.post('/sub-admins', restrictTo('super_admin'), createSubAdmin);
 
 export default router;

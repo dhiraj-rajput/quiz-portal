@@ -31,7 +31,7 @@ router.use(protect);
 router.get('/', validatePagination, getTests);
 
 // GET /api/tests/assignments - Get all test assignments (Admin only) - MUST BE BEFORE /:id
-router.get('/assignments', authorize('admin'), validatePagination, getTestAssignments);
+router.get('/assignments', authorize('super_admin', 'sub_admin'), validatePagination, getTestAssignments);
 
 // GET /api/tests/:id - Get single test details
 router.get('/:id', validateMongoId, getTestById);
@@ -43,19 +43,19 @@ router.get('/:id/take', authorize('student'), validateMongoId, getTestForTaking)
 router.get('/:id/results', validateMongoId, getTestResults);
 
 // GET /api/tests/:id/assignments - Get assignment for specific test (Admin only)
-router.get('/:id/assignments', authorize('admin'), validateMongoId, getTestAssignment);
+router.get('/:id/assignments', authorize('super_admin', 'sub_admin'), validateMongoId, getTestAssignment);
 
 // POST /api/tests - Create new test (Admin only)
-router.post('/', authorize('admin'), validateCreateTest, createTest);
+router.post('/', authorize('super_admin', 'sub_admin'), validateCreateTest, createTest);
 
 // PUT /api/tests/:id - Update test (Admin only)
-router.put('/:id', authorize('admin'), validateUpdateTest, updateTest);
+router.put('/:id', authorize('super_admin', 'sub_admin'), validateUpdateTest, updateTest);
 
 // DELETE /api/tests/:id - Delete test (Admin only)
-router.delete('/:id', authorize('admin'), validateMongoId, deleteTest);
+router.delete('/:id', authorize('super_admin', 'sub_admin'), validateMongoId, deleteTest);
 
 // POST /api/tests/:id/assign - Assign test to students (Admin only)
-router.post('/:id/assign', authorize('admin'), validateAssignTest, assignTest);
+router.post('/:id/assign', authorize('super_admin', 'sub_admin'), validateAssignTest, assignTest);
 
 // POST /api/tests/:id/submit - Submit test answers (Student only)
 router.post('/:id/submit', authorize('student'), validateSubmitTest, submitTest);

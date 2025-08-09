@@ -5,7 +5,7 @@ import AnalyticsService from '../utils/analyticsService';
 const router = express.Router();
 
 // Get dashboard analytics
-router.get('/dashboard', protect, authorize('admin'), async (req, res) => {
+router.get('/dashboard', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const analyticsService = (req.app as any).analyticsService as AnalyticsService;
     const stats = await analyticsService.getDashboardStats();
@@ -24,7 +24,7 @@ router.get('/dashboard', protect, authorize('admin'), async (req, res) => {
 });
 
 // Get test analytics
-router.get('/tests/:id', protect, authorize('admin'), async (req, res) => {
+router.get('/tests/:id', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const analyticsService = (req.app as any).analyticsService as AnalyticsService;
     const analytics = await analyticsService.getTestAnalytics(req.params.id);
@@ -50,7 +50,7 @@ router.get('/tests/:id', protect, authorize('admin'), async (req, res) => {
 });
 
 // Get student performance
-router.get('/students/:id', protect, authorize('admin'), async (req, res) => {
+router.get('/students/:id', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const analyticsService = (req.app as any).analyticsService as AnalyticsService;
     const performance = await analyticsService.getStudentPerformance(req.params.id);
@@ -76,7 +76,7 @@ router.get('/students/:id', protect, authorize('admin'), async (req, res) => {
 });
 
 // Get module analytics
-router.get('/modules/:id', protect, authorize('admin'), async (req, res) => {
+router.get('/modules/:id', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const analyticsService = (req.app as any).analyticsService as AnalyticsService;
     const analytics = await analyticsService.getModuleAnalytics(req.params.id);
@@ -102,7 +102,7 @@ router.get('/modules/:id', protect, authorize('admin'), async (req, res) => {
 });
 
 // Get performance trends
-router.get('/trends', protect, authorize('admin'), async (req, res) => {
+router.get('/trends', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const period = req.query.period as 'week' | 'month' | 'quarter' || 'month';
     const analyticsService = (req.app as any).analyticsService as AnalyticsService;
@@ -122,7 +122,7 @@ router.get('/trends', protect, authorize('admin'), async (req, res) => {
 });
 
 // Export analytics data
-router.get('/export/:type', protect, authorize('admin'), async (req, res) => {
+router.get('/export/:type', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const type = req.params.type as 'users' | 'tests' | 'modules' | 'performance';
     const analyticsService = (req.app as any).analyticsService as AnalyticsService;
@@ -148,7 +148,7 @@ router.get('/export/:type', protect, authorize('admin'), async (req, res) => {
 });
 
 // Get real-time active sessions
-router.get('/active-sessions', protect, authorize('admin'), async (req, res) => {
+router.get('/active-sessions', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const webSocketService = (req.app as any).webSocket;
     const activeSessions = webSocketService.getActiveTestSessions();
@@ -171,7 +171,7 @@ router.get('/active-sessions', protect, authorize('admin'), async (req, res) => 
 });
 
 // Send broadcast notification to all students
-router.post('/broadcast', protect, authorize('admin'), async (req, res) => {
+router.post('/broadcast', protect, authorize('super_admin', 'sub_admin'), async (req, res) => {
   try {
     const { message, type = 'info' } = req.body;
     
