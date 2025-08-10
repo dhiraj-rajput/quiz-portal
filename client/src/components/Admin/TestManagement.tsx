@@ -57,10 +57,19 @@ const TestManagement: React.FC = () => {
     loadTests();
   }, []);
 
-  const loadTests = async () => {
+  // Search effect with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadTests(searchTerm);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const loadTests = async (search = '') => {
     try {
       setLoading(true);
-      const response = await testAPI.getTests(1, 50);
+      const response = await testAPI.getTests(1, 50, search);
       if (response.success && response.data) {
         setTests(response.data.tests);
       }
@@ -291,10 +300,7 @@ const TestManagement: React.FC = () => {
     resetForm();
   };
 
-  const filteredTests = tests.filter(test =>
-    test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    test.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Remove filtered tests logic since we're using server-side search
 
   if (loading) {
     return (
@@ -345,7 +351,7 @@ const TestManagement: React.FC = () => {
         {/* Tests Grid */}
         <div className="px-4 sm:px-0">
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-3">
-            {filteredTests.map((test) => (
+            {tests.map((test) => (
               <div key={test._id} className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
@@ -440,7 +446,7 @@ const TestManagement: React.FC = () => {
             ))}
           </div>
 
-          {filteredTests.length === 0 && (
+          {tests.length === 0 && (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No tests found</h3>

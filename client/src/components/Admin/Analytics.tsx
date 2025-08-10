@@ -90,6 +90,7 @@ const Analytics: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [testAnalytics, setTestAnalytics] = useState<TestWithResults[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedTest, setSelectedTest] = useState<string>('all');
   const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
@@ -97,6 +98,15 @@ const Analytics: React.FC = () => {
   useEffect(() => {
     loadAnalyticsData();
   }, []);
+
+  // Search effect with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300); // 300ms debounce for analytics
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const loadAnalyticsData = async () => {
     try {
@@ -174,7 +184,7 @@ const Analytics: React.FC = () => {
 
   const filteredTests = testAnalytics.filter(ta => {
     if (selectedTest !== 'all' && ta.test._id !== selectedTest) return false;
-    if (searchTerm && !ta.test.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (debouncedSearchTerm && !ta.test.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) return false;
     return true;
   });
 

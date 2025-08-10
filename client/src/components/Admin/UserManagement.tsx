@@ -60,12 +60,22 @@ const UserManagement: React.FC = () => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  // Search effect with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadData(searchTerm, roleFilter === 'all' ? '' : roleFilter);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, roleFilter]);
+
+  // Load data with search functionality
+  const loadData = async (search = '', role = '') => {
     try {
       setLoading(true);
       const [usersResponse, pendingResponse] = await Promise.all([
-        adminAPI.getUsers(1, 50).catch(() => ({ success: false, data: null })),
-        adminAPI.getPendingRequests(1, 50).catch(() => ({ success: false, data: null }))
+        adminAPI.getUsers(1, 100, search, role).catch(() => ({ success: false, data: null })),
+        adminAPI.getPendingRequests(1, 100, search).catch(() => ({ success: false, data: null }))
       ]);
       
       if (usersResponse.success && usersResponse.data && usersResponse.data.users) {
@@ -229,15 +239,9 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const filteredUsers = Array.isArray(users) ? users.filter(user => {
-    const matchesSearch = `${user.firstName} ${user.lastName} ${user.email} ${user.phoneNumber || ''}`.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  }) : [];
-
-  const filteredPendingRequests = Array.isArray(pendingRequests) ? pendingRequests.filter(request =>
-    `${request.firstName} ${request.lastName} ${request.email} ${request.phoneNumber || ''}`.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  // Users and pending requests are now filtered on the server side
+  const filteredUsers = Array.isArray(users) ? users : [];
+  const filteredPendingRequests = Array.isArray(pendingRequests) ? pendingRequests : [];
 
   if (loading) {
     return (

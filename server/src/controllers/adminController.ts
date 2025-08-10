@@ -123,15 +123,44 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
     const sortBy = req.query.sortBy as string || 'createdAt';
     const sortOrder = req.query.sortOrder as string || 'desc';
 
-    // Build query
-    let query: any = { status: 'pending' };
+    const userRole = req.user!.role;
+    const userId = req.user!.id;
+
+    // Build query with role-based filtering
+    let query: any = {};
+
+    if (userRole === 'super_admin') {
+      // Super Admin can see all pending requests and those assigned to sub admins
+      query = {
+        $or: [
+          { status: 'pending' },
+          { status: 'assigned_to_sub_admin' }
+        ]
+      };
+    } else if (userRole === 'sub_admin') {
+      // Sub Admin can only see requests assigned to them
+      query = {
+        status: 'assigned_to_sub_admin',
+        assignedSubAdmin: userId
+      };
+    }
 
     if (search) {
-      query.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ];
+      const searchCondition = {
+        $or: [
+          { firstName: { $regex: search, $options: 'i' } },
+          { lastName: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ]
+      };
+
+      // Combine role-based filter with search filter
+      query = {
+        $and: [
+          query,
+          searchCondition
+        ]
+      };
     }
 
     // Build sort object
@@ -140,10 +169,11 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
 
     // Get pending requests with pagination
     const pendingRequests = await PendingRequest.find(query)
+      .populate('assignedSubAdmin', 'firstName lastName email')
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .select('firstName lastName email admissionDate createdAt');
+      .select('firstName lastName email admissionDate createdAt status assignedSubAdmin');
 
     // Get total count for pagination
     const totalCount = await PendingRequest.countDocuments(query);
@@ -201,7 +231,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
     }
 
     // Create new user from pending request
-    const newUser = await User.create({
+    const userData: any = {
       firstName: pendingRequest.firstName,
       lastName: pendingRequest.lastName,
       email: pendingRequest.email,
@@ -211,7 +241,23 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
       role: role,
       status: 'active',
       admissionDate: pendingRequest.admissionDate,
-    });
+    };
+
+    // Handle assignment relationships
+    if (role === 'student') {
+      if (req.user!.role === 'sub_admin') {
+        // If sub admin is approving, assign student to themselves
+        userData.assignedSubAdmin = req.user!.id;
+      } else if (pendingRequest.assignedSubAdmin) {
+        // If super admin is approving and request was assigned to sub admin
+        userData.assignedSubAdmin = pendingRequest.assignedSubAdmin;
+      }
+    } else if (role === 'sub_admin' && req.user!.role === 'super_admin') {
+      // If super admin is creating a sub admin
+      userData.assignedBy = req.user!.id;
+    }
+
+    const newUser = await User.create(userData);
 
     // Remove the pending request
     await PendingRequest.findByIdAndDelete(id);
@@ -340,23 +386,74 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
     const sortBy = req.query.sortBy as string || 'createdAt';
     const sortOrder = req.query.sortOrder as string || 'desc';
 
-    // Build query
+    const userRole = req.user!.role;
+    const userId = req.user!.id;
+
+    // Build query with role-based filtering
     let query: any = {};
 
+    // Role-based data partitioning
+    if (userRole === 'sub_admin') {
+      // Sub Admin can only see:
+      // 1. Students assigned to them
+      // 2. Their own record
+      query = {
+        $or: [
+          { role: 'student', assignedSubAdmin: userId },
+          { _id: userId }
+        ]
+      };
+    } else if (userRole === 'super_admin') {
+      // Super Admin can see all users
+      // No additional filtering needed for super admin
+    }
+
     if (search) {
-      query.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ];
+      const searchCondition = {
+        $or: [
+          { firstName: { $regex: search, $options: 'i' } },
+          { lastName: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ]
+      };
+
+      if (query.$or) {
+        // Combine role-based filter with search filter
+        query = {
+          $and: [
+            { $or: query.$or },
+            searchCondition
+          ]
+        };
+      } else {
+        query = searchCondition;
+      }
     }
 
     if (role && ['super_admin', 'sub_admin', 'student'].includes(role)) {
-      query.role = role;
+      if (query.$and) {
+        query.$and.push({ role });
+      } else if (query.$or && userRole === 'sub_admin') {
+        // For sub admin with role filter, update the student filter
+        if (role === 'student') {
+          query = { role: 'student', assignedSubAdmin: userId };
+        } else if (role === 'sub_admin') {
+          query = { _id: userId, role: 'sub_admin' };
+        } else {
+          // Sub admin cannot see super_admin
+          query = { _id: null }; // Return no results
+        }
+      } else {
+        query.role = role;
+      }
     }
 
     if (status && ['active', 'inactive'].includes(status)) {
-      query.status = status;
+      if (query.$and) {
+        query.$and.push({ status });
+      } else {
+        query.status = status;
+      }
     }
 
     // Build sort object

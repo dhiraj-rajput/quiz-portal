@@ -217,6 +217,9 @@ export const adminAPI = {
   rejectUser: (id: string, reason?: string) =>
     api.delete<ApiResponse>(`/admin/reject-user/${id}${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`),
 
+  assignToSubAdmin: (id: string, subAdminId: string) =>
+    api.put<ApiResponse>(`/admin/assign-to-sub-admin/${id}`, { subAdminId }),
+
   getUsers: (page = 1, limit = 10, search = '', role = '') =>
     api.get<ApiResponse<{ users: any[]; pagination: any }>>
       (`/admin/users?page=${page}&limit=${limit}&search=${search}&role=${role}`),
@@ -242,6 +245,8 @@ export const adminAPI = {
     api.delete<ApiResponse>(`/admin/users/${id}`),
 
   getStats: () => api.get<ApiResponse<any>>('/admin/stats'),
+
+  getSubAdmins: () => api.get<ApiResponse<{ subAdmins: any[] }>>('/admin/sub-admins'),
 
   // Analytics endpoints
   getTestAnalytics: () => api.get<ApiResponse<any>>('/analytics/dashboard'),

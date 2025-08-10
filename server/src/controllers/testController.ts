@@ -51,8 +51,9 @@ export const getTests = async (req: AuthenticatedRequest, res: Response, next: N
       query.isPublished = isPublished === 'true';
     }
 
-    // If user is student, only show published tests assigned to them
+    // Role-based filtering
     if (req.user!.role === 'student') {
+      // Students: only show published tests assigned to them
       query.isPublished = true;
       
       const assignments = await TestAssignment.find({
@@ -62,6 +63,12 @@ export const getTests = async (req: AuthenticatedRequest, res: Response, next: N
       
       const testIds = assignments.map(assignment => assignment.testId);
       query._id = { $in: testIds };
+    } else if (req.user!.role === 'sub_admin') {
+      // Sub Admin: only show tests they created
+      query.createdBy = req.user!.id;
+    } else if (req.user!.role === 'super_admin') {
+      // Super Admin: show all tests (no additional filtering needed)
+      // They can see all tests in the system
     }
 
     // Build sort object
@@ -504,7 +511,29 @@ export const assignTest = async (req: AuthenticatedRequest, res: Response, next:
 export const submitTest = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const { answers, timeSpent, startedAt } = req.body;
+    let { answers, timeSpent, startedAt, authToken } = req.body;
+
+    // Handle beacon submissions - authToken in payload means this is a beacon submission
+    if (authToken && !req.user) {
+      // For beacon submissions, we need to verify the token manually
+      try {
+        const jwt = require('jsonwebtoken');
+        const User = require('../models/User').default;
+        
+        const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select('-password');
+        
+        if (!user) {
+          return next(new AppError('Invalid token - user not found', 401));
+        }
+        
+        // Set the user for the rest of the function
+        req.user = user;
+      } catch (tokenError) {
+        console.error('Beacon token validation failed:', tokenError);
+        return next(new AppError('Invalid authentication token', 401));
+      }
+    }
 
     // Validate input
     if (!answers || !Array.isArray(answers)) {

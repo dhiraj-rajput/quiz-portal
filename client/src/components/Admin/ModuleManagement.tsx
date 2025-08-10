@@ -42,10 +42,19 @@ const ModuleManagement: React.FC = () => {
     loadModules();
   }, []);
 
-  const loadModules = async () => {
+  // Search effect with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadModules(searchTerm);
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const loadModules = async (search = '') => {
     try {
       setLoading(true);
-      const response = await moduleAPI.getModules(1, 50);
+      const response = await moduleAPI.getModules(1, 100, search);
       if (response.success && response.data) {
         setModules(response.data.modules);
       }
@@ -137,10 +146,7 @@ const ModuleManagement: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredModules = modules.filter(module =>
-    module.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    module.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Remove filtered modules logic since we're using server-side search
 
   if (loading) {
     return (
@@ -191,7 +197,7 @@ const ModuleManagement: React.FC = () => {
         {/* Modules Grid */}
         <div className="px-4 sm:px-0">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredModules.map((module) => (
+            {modules.map((module) => (
               <div key={module._id} className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
                 <div className="p-6">
                   <div className="flex items-center justify-between">
@@ -259,7 +265,7 @@ const ModuleManagement: React.FC = () => {
             ))}
           </div>
 
-          {filteredModules.length === 0 && (
+          {modules.length === 0 && (
             <div className="text-center py-12">
               <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No modules found</h3>
