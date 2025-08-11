@@ -92,9 +92,11 @@ const AdminDashboard: React.FC = () => {
       showSuccess('User approved successfully!');
       // Reload data after approval
       await loadDashboardData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving user:', error);
-      showError('Failed to approve user. Please check server connection.');
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      const errorMessage = error?.message || error?.error?.message || 'Failed to approve user. Please check server connection.';
+      showError(errorMessage);
     }
   };
 

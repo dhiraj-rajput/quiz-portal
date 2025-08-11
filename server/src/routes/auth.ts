@@ -7,6 +7,7 @@ import {
   getMe,
   updatePassword,
   updateProfile,
+  checkEmail,
 } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 
@@ -16,6 +17,7 @@ const router = express.Router();
 router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh-token', refreshToken);
+router.post('/check-email', checkEmail);
 
 // Protected routes
 router.use(protect); // All routes after this middleware are protected

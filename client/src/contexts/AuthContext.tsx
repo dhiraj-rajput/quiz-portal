@@ -118,6 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        phoneNumber: data.phoneNumber,
         password: data.password,
         confirmPassword: data.confirmPassword,
         admissionDate: data.admissionDate,

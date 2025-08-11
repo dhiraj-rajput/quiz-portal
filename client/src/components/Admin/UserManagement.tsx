@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Search, Plus, X } from 'lucide-react';
+import { Users, UserCheck, UserX, Search, Plus, X, UserCog } from 'lucide-react';
 import { adminAPI } from '../../utils/api';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface User {
   _id: string;
@@ -43,7 +44,11 @@ const UserManagement: React.FC = () => {
   const [subAdmins, setSubAdmins] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<Partial<User>>({});
   const [passwordEdit, setPasswordEdit] = useState({ newPassword: '', confirmPassword: '', changePassword: false });
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
   const { showSuccess, showError } = useNotifications();
+  const { user: currentUser } = useAuth();
+  
   const [newUser, setNewUser] = useState({
     firstName: '',
     lastName: '',
@@ -107,8 +112,15 @@ const UserManagement: React.FC = () => {
     try {
       await adminAPI.approveUser(id, 'student');
       await loadData(); // Reload data
-    } catch (error) {
+      showSuccess('User Approved', 'User approved successfully!');
+    } catch (error: any) {
       console.error('Error approving user:', error);
+      // Check if error is about assignment requirement
+      if (error.response?.data?.message?.includes('assign')) {
+        showError('Assignment Required', error.response.data.message);
+      } else {
+        showError('Approval Failed', 'Failed to approve user. Please try again.');
+      }
     }
   };
 
@@ -116,9 +128,29 @@ const UserManagement: React.FC = () => {
     try {
       await adminAPI.rejectUser(id, 'Application rejected');
       await loadData(); // Reload data
+      showSuccess('User Rejected', 'User rejected successfully!');
     } catch (error) {
       console.error('Error rejecting user:', error);
+      showError('Rejection Failed', 'Failed to reject user. Please try again.');
     }
+  };
+
+  const handleAssignToSubAdmin = async (requestId: string, subAdminId: string) => {
+    try {
+      await adminAPI.assignToSubAdmin(requestId, subAdminId);
+      await loadData(); // Reload data
+      setShowAssignModal(false);
+      setSelectedRequest(null);
+      showSuccess('Assignment Successful', 'Request assigned to Sub Admin successfully!');
+    } catch (error) {
+      console.error('Error assigning to sub admin:', error);
+      showError('Assignment Failed', 'Failed to assign request to Sub Admin. Please try again.');
+    }
+  };
+
+  const openAssignModal = (request: PendingRequest) => {
+    setSelectedRequest(request);
+    setShowAssignModal(true);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -441,6 +473,20 @@ const UserManagement: React.FC = () => {
                             {request.phoneNumber && (
                               <p className="text-sm text-gray-500 dark:text-gray-400">📱 {request.phoneNumber}</p>
                             )}
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                request.status === 'pending' 
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              }`}>
+                                {request.status === 'pending' ? 'Pending Review' : 'Assigned to Sub Admin'}
+                              </span>
+                              {request.assignedSubAdmin && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  Assigned to Sub Admin
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-gray-400 dark:text-gray-500">
                               Requested: {new Date(request.createdAt).toLocaleDateString()}
                             </p>
@@ -449,13 +495,30 @@ const UserManagement: React.FC = () => {
                         
                         {/* Action buttons - mobile stacked, desktop inline */}
                         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 flex-shrink-0">
-                          <button
-                            onClick={() => handleApproveUser(request._id)}
-                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
-                          >
-                            <UserCheck className="h-4 w-4 mr-2" />
-                            Approve
-                          </button>
+                          {/* Super Admin Actions */}
+                          {currentUser?.role === 'super_admin' && request.status === 'pending' && (
+                            <button
+                              onClick={() => openAssignModal(request)}
+                              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            >
+                              <UserCog className="h-4 w-4 mr-2" />
+                              Assign to Sub Admin
+                            </button>
+                          )}
+                          
+                          {/* Sub Admin Actions or Super Admin direct approval */}
+                          {((currentUser?.role === 'sub_admin' && request.status === 'assigned_to_sub_admin') || 
+                            (currentUser?.role === 'super_admin' && request.status === 'pending')) && (
+                            <button
+                              onClick={() => handleApproveUser(request._id)}
+                              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                            >
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              Approve
+                            </button>
+                          )}
+                          
+                          {/* Reject button - available to both roles for their respective requests */}
                           <button
                             onClick={() => handleRejectUser(request._id)}
                             className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
@@ -892,6 +955,58 @@ const UserManagement: React.FC = () => {
                   </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assignment Modal */}
+      {showAssignModal && selectedRequest && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 dark:bg-gray-900 dark:bg-opacity-75 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+          <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Assign Request to Sub Admin
+              </h3>
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Request from: <strong>{selectedRequest.firstName} {selectedRequest.lastName}</strong>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Email: {selectedRequest.email}
+                </p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select Sub Admin:
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleAssignToSubAdmin(selectedRequest._id, e.target.value);
+                    }
+                  }}
+                  defaultValue=""
+                >
+                  <option value="">Select a Sub Admin...</option>
+                  {subAdmins.map((subAdmin) => (
+                    <option key={subAdmin._id} value={subAdmin._id}>
+                      {subAdmin.firstName} {subAdmin.lastName} ({subAdmin.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setSelectedRequest(null);
+                  }}
+                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>

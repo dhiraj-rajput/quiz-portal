@@ -204,6 +204,8 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
   try {
     const { id } = req.params;
     const { role } = req.body;
+    const userRole = req.user!.role;
+    const userId = req.user!.id;
 
     // Validate role
     if (!role || !['super_admin', 'sub_admin', 'student'].includes(role)) {
@@ -215,6 +217,25 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
     
     if (!pendingRequest) {
       return next(new AppError('Pending request not found or may have already been processed', 404));
+    }
+
+    // Role-based authorization checks
+    if (userRole === 'sub_admin') {
+      // Sub Admin can only approve requests assigned to them
+      if (pendingRequest.status !== 'assigned_to_sub_admin') {
+        return next(new AppError('This request is not assigned to a sub admin yet', 403));
+      }
+      if (!pendingRequest.assignedSubAdmin || pendingRequest.assignedSubAdmin.toString() !== userId) {
+        return next(new AppError('You can only approve requests assigned to you', 403));
+      }
+      // Sub admin can only create students
+      if (role !== 'student') {
+        return next(new AppError('Sub admins can only approve student registrations', 403));
+      }
+    } else if (userRole === 'super_admin') {
+      // Super Admin can approve any request
+      // They can also assign to sub admin first if they prefer, but direct approval is allowed
+      // No additional restrictions for super admin
     }
 
     // Check if user with same email or phone already exists
@@ -245,16 +266,16 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
 
     // Handle assignment relationships
     if (role === 'student') {
-      if (req.user!.role === 'sub_admin') {
+      if (userRole === 'sub_admin') {
         // If sub admin is approving, assign student to themselves
-        userData.assignedSubAdmin = req.user!.id;
+        userData.assignedSubAdmin = userId;
       } else if (pendingRequest.assignedSubAdmin) {
         // If super admin is approving and request was assigned to sub admin
         userData.assignedSubAdmin = pendingRequest.assignedSubAdmin;
       }
-    } else if (role === 'sub_admin' && req.user!.role === 'super_admin') {
+    } else if (role === 'sub_admin' && userRole === 'super_admin') {
       // If super admin is creating a sub admin
-      userData.assignedBy = req.user!.id;
+      userData.assignedBy = userId;
     }
 
     const newUser = await User.create(userData);
@@ -406,6 +427,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
     } else if (userRole === 'super_admin') {
       // Super Admin can see all users
       // No additional filtering needed for super admin
+      query = {};
+    } else {
+      // Fallback - shouldn't happen with proper auth
+      query = { _id: userId };
     }
 
     if (search) {

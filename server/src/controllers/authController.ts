@@ -318,3 +318,46 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response, ne
     next(error);
   }
 };
+
+// @desc    Check if email exists
+// @route   POST /api/auth/check-email
+// @access  Public
+export const checkEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(new AppError('Email is required', 400));
+    }
+
+    // Check if email exists in User collection
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      res.status(200).json({
+        success: true,
+        exists: true,
+        message: 'Email already exists'
+      });
+      return;
+    }
+
+    // Check if email exists in PendingRequest collection
+    const existingRequest = await PendingRequest.findOne({ email });
+    if (existingRequest) {
+      res.status(200).json({
+        success: true,
+        exists: true,
+        message: 'Email has a pending registration request'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      exists: false,
+      message: 'Email is available'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
