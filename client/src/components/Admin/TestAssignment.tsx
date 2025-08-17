@@ -41,6 +41,8 @@ const TestAssignment: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [maxAttempts, setMaxAttempts] = useState<number>(3);
+  const [isCustomAttempts, setIsCustomAttempts] = useState(false);
+  const [customAttempts, setCustomAttempts] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -132,6 +134,8 @@ const TestAssignment: React.FC = () => {
       setStartDate('');
       setDueDate('');
       setMaxAttempts(3);
+      setIsCustomAttempts(false);
+      setCustomAttempts('');
       setCurrentAssignment(null);
       await loadData();
     } catch (error) {
@@ -281,18 +285,55 @@ const TestAssignment: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Maximum Attempts
                     </label>
-                    <select
-                      value={maxAttempts}
-                      onChange={(e) => setMaxAttempts(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    >
-                      <option value={1}>1 Attempt</option>
-                      <option value={2}>2 Attempts</option>
-                      <option value={3}>3 Attempts</option>
-                      <option value={4}>4 Attempts</option>
-                      <option value={5}>5 Attempts</option>
-                      <option value={-1}>Unlimited</option>
-                    </select>
+                    <div className="space-y-2">
+                      <select
+                        value={isCustomAttempts ? 'custom' : maxAttempts}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === 'custom') {
+                            setIsCustomAttempts(true);
+                            setCustomAttempts(maxAttempts.toString());
+                          } else if (value === 'unlimited') {
+                            setIsCustomAttempts(false);
+                            setMaxAttempts(-1);
+                          } else {
+                            setIsCustomAttempts(false);
+                            setMaxAttempts(Number(value));
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value={1}>1 Attempt</option>
+                        <option value={2}>2 Attempts</option>
+                        <option value={3}>3 Attempts</option>
+                        <option value={4}>4 Attempts</option>
+                        <option value={5}>5 Attempts</option>
+                        <option value={6}>6 Attempts</option>
+                        <option value="unlimited">Unlimited</option>
+                        <option value="custom">Custom (Manual Input)</option>
+                      </select>
+                      
+                      {isCustomAttempts && (
+                        <div className="mt-2">
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            placeholder="Enter number of attempts"
+                            value={customAttempts}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setCustomAttempts(value);
+                              if (value && !isNaN(Number(value))) {
+                                setMaxAttempts(Number(value));
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Enter any number between 1-100</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -367,6 +408,9 @@ const TestAssignment: React.FC = () => {
                       setStartDate('');
                       setDueDate('');
                       setSearchTerm('');
+                      setMaxAttempts(3);
+                      setIsCustomAttempts(false);
+                      setCustomAttempts('');
                     }}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 rounded-md"
                   >

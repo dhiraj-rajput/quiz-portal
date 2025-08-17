@@ -46,6 +46,8 @@ const TestManagement: React.FC = () => {
       question: '',
       options: [
         { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
+        { text: '', isCorrect: false },
         { text: '', isCorrect: false }
       ],
       explanation: '',
@@ -223,6 +225,8 @@ const TestManagement: React.FC = () => {
           question: '',
           options: [
             { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
+            { text: '', isCorrect: false },
             { text: '', isCorrect: false }
           ],
           explanation: '',
@@ -355,11 +359,11 @@ const TestManagement: React.FC = () => {
               <div key={test._id} className="bg-white dark:bg-gray-800 overflow-hidden shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow duration-200">
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-                    <div className="flex items-center mb-2 sm:mb-0">
-                      <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600 flex-shrink-0" />
+                    <div className="flex items-start mb-2 sm:mb-0 flex-1 min-w-0">
+                      <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-600 flex-shrink-0 mt-1" />
                       <div className="ml-3 min-w-0 flex-1">
-                        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white truncate">{test.title}</h3>
-                        <div className="mt-1">
+                        <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white break-words leading-tight">{test.title}</h3>
+                        <div className="mt-2">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             test.isPublished 
                               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
@@ -529,7 +533,7 @@ const TestManagement: React.FC = () => {
                       rows={3}
                       value={newTest.description}
                       onChange={(e) => setNewTest({...newTest, description: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-y"
                       placeholder="Enter test description"
                     />
                   </div>
@@ -543,7 +547,7 @@ const TestManagement: React.FC = () => {
                       rows={4}
                       value={newTest.instructions}
                       onChange={(e) => setNewTest({...newTest, instructions: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-y"
                       placeholder="Enter instructions for students"
                     />
                   </div>
@@ -562,98 +566,124 @@ const TestManagement: React.FC = () => {
                     </div>
 
                     {newTest.questions.map((question, questionIndex) => (
-                      <div key={questionIndex} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4">
-                        <div className="flex justify-between items-center mb-3">
+                      <div key={questionIndex} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4 bg-gray-50 dark:bg-gray-700/50">
+                        <div className="flex justify-between items-center mb-4">
                           <h5 className="font-medium text-gray-900 dark:text-white">Question {questionIndex + 1}</h5>
                           {newTest.questions.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeQuestion(questionIndex)}
-                              className="text-red-600 hover:text-red-500 text-sm"
+                              className="text-red-600 hover:text-red-500 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                             >
                               Remove
                             </button>
                           )}
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
+                          {/* Question Text */}
                           <div>
-                            <input
-                              type="text"
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Question Text *
+                            </label>
+                            <textarea
                               required
-                              placeholder="Enter question text"
+                              rows={3}
+                              placeholder="Enter your question here..."
                               value={question.question}
                               onChange={(e) => updateQuestion(questionIndex, 'question', e.target.value)}
-                              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
+                              className="w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 resize-y min-h-[80px] break-words"
+                              style={{wordBreak: 'break-word'}}
                             />
                           </div>
 
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Options:</label>
+                          {/* Answer Options */}
+                          <div>
+                            <div className="flex justify-between items-center mb-3">
+                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Answer Options *</label>
                               <button
                                 type="button"
                                 onClick={() => addOption(questionIndex)}
-                                className="text-sm text-indigo-600 hover:text-indigo-500"
+                                className="text-xs px-3 py-1 text-indigo-600 hover:text-indigo-500 border border-indigo-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                               >
                                 + Add Option
                               </button>
                             </div>
-                            {question.options.map((option, optionIndex) => (
-                              <div key={optionIndex} className="flex items-center space-x-2">
-                                <input
-                                  type="radio"
-                                  name={`question-${questionIndex}`}
-                                  checked={option.isCorrect}
-                                  onChange={() => updateOption(questionIndex, optionIndex, 'isCorrect', true)}
-                                  className="text-indigo-600 focus:ring-indigo-500"
-                                />
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder={`Option ${optionIndex + 1}`}
-                                  value={option.text}
-                                  onChange={(e) => updateOption(questionIndex, optionIndex, 'text', e.target.value)}
-                                  className="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
-                                />
-                                {question.options.length > 2 && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeOption(questionIndex, optionIndex)}
-                                    className="text-red-600 hover:text-red-500 text-sm"
-                                  >
-                                    Remove
-                                  </button>
-                                )}
-                              </div>
-                            ))}
+                            <div className="space-y-2">
+                              {question.options.map((option, optionIndex) => (
+                                <div key={optionIndex} className="flex items-start space-x-3 p-2 rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                  <input
+                                    type="radio"
+                                    name={`question-${questionIndex}`}
+                                    checked={option.isCorrect}
+                                    onChange={() => updateOption(questionIndex, optionIndex, 'isCorrect', true)}
+                                    className="text-indigo-600 focus:ring-indigo-500 mt-1 flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <textarea
+                                      required
+                                      rows={1}
+                                      placeholder={`Option ${optionIndex + 1}`}
+                                      value={option.text}
+                                      onChange={(e) => updateOption(questionIndex, optionIndex, 'text', e.target.value)}
+                                      className="w-full px-2 py-1 rounded-md border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-y min-h-[32px] break-words"
+                                      style={{wordBreak: 'break-word'}}
+                                    />
+                                  </div>
+                                  {question.options.length > 2 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeOption(questionIndex, optionIndex)}
+                                      className="text-red-600 hover:text-red-500 text-xs px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0 mt-1"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
 
+                          {/* Answer Explanation */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              Answer Explanation:
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Answer Explanation
                             </label>
                             <textarea
                               placeholder="Explain why this answer is correct..."
                               value={question.explanation}
                               onChange={(e) => updateQuestion(questionIndex, 'explanation', e.target.value)}
-                              rows={2}
-                              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
+                              rows={3}
+                              className="w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 resize-y min-h-[80px] break-words"
+                              style={{wordBreak: 'break-word'}}
                             />
                           </div>
 
-                          <div className="flex items-center space-x-4">
-                            <label className="text-sm text-gray-700 dark:text-gray-300">Points:</label>
+                          {/* Points */}
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Points:</label>
                             <input
                               type="number"
                               min="1"
                               max="10"
                               value={question.points}
                               onChange={(e) => updateQuestion(questionIndex, 'points', parseInt(e.target.value))}
-                              className="w-20 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500"
+                              className="w-20 px-2 py-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                             />
                           </div>
                         </div>
+                        {/* Add Question Button after each question */}
+                        {questionIndex === newTest.questions.length - 1 && (
+                          <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-600">
+                            <button
+                              type="button"
+                              onClick={addQuestion}
+                              className="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 transition-colors"
+                            >
+                              + Add Another Question
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
