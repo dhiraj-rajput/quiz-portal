@@ -1,5 +1,5 @@
 export interface User {
-  id: string;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -13,7 +13,7 @@ export interface User {
 }
 
 export interface PendingRequest {
-  id: string;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -27,7 +27,7 @@ export interface PendingRequest {
 }
 
 export interface Module {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   files: ModuleFile[];
@@ -47,7 +47,7 @@ export interface ModuleFile {
 }
 
 export interface Question {
-  id: string;
+  _id: string;
   text: string;
   options: string[];
   correctAnswer: number;
@@ -55,7 +55,7 @@ export interface Question {
 }
 
 export interface MockTest {
-  id: string;
+  _id: string;
   title: string;
   instructions: string;
   description: string;
@@ -65,7 +65,7 @@ export interface MockTest {
 }
 
 export interface TestAssignment {
-  id: string;
+  _id: string;
   testId: string;
   assignedTo: string[];
   dueDate: string;
@@ -76,7 +76,7 @@ export interface TestAssignment {
 }
 
 export interface TestResult {
-  id: string;
+  _id: string;
   userId: string;
   testId: string;
   assignmentId: string;
@@ -88,7 +88,7 @@ export interface TestResult {
 }
 
 export interface ModuleAssignment {
-  id: string;
+  _id: string;
   moduleId: string;
   assignedTo: string[];
   assignedBy: string;

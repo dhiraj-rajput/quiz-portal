@@ -78,28 +78,43 @@ const UserManagement: React.FC = () => {
   const loadData = async (search = '', role = '') => {
     try {
       setLoading(true);
+      console.log('[FRONTEND] Loading data for role:', currentUser?.role);
+      
       const [usersResponse, pendingResponse] = await Promise.all([
-        adminAPI.getUsers(1, 100, search, role).catch(() => ({ success: false, data: null })),
-        adminAPI.getPendingRequests(1, 100, search).catch(() => ({ success: false, data: null }))
+        adminAPI.getUsers(1, 100, search, role).catch((error) => {
+          console.error('[FRONTEND] Error loading users:', error);
+          return { success: false, data: null };
+        }),
+        adminAPI.getPendingRequests(1, 100, search).catch((error) => {
+          console.error('[FRONTEND] Error loading pending requests:', error);
+          return { success: false, data: null };
+        })
       ]);
+      
+      console.log('[FRONTEND] Users response:', usersResponse);
+      console.log('[FRONTEND] Pending requests response:', pendingResponse);
       
       if (usersResponse.success && usersResponse.data && usersResponse.data.users) {
         const allUsers = usersResponse.data.users;
         setUsers(allUsers);
         // Set sub admins for assignment dropdown
         setSubAdmins(allUsers.filter((user: User) => user.role === 'sub_admin'));
+        console.log('[FRONTEND] Loaded users:', allUsers.length, 'Sub admins:', allUsers.filter((user: User) => user.role === 'sub_admin').length);
       } else {
         setUsers([]);
         setSubAdmins([]);
+        console.log('[FRONTEND] No users data received');
       }
       
       if (pendingResponse.success && pendingResponse.data && pendingResponse.data.requests) {
         setPendingRequests(pendingResponse.data.requests);
+        console.log('[FRONTEND] Loaded pending requests:', pendingResponse.data.requests.length);
       } else {
         setPendingRequests([]);
+        console.log('[FRONTEND] No pending requests data received');
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('[FRONTEND] Error loading data:', error);
       setUsers([]);
       setSubAdmins([]);
       setPendingRequests([]);
@@ -137,13 +152,16 @@ const UserManagement: React.FC = () => {
 
   const handleAssignToSubAdmin = async (requestId: string, subAdminId: string) => {
     try {
-      await adminAPI.assignToSubAdmin(requestId, subAdminId);
+      console.log('[FRONTEND] Assigning request', requestId, 'to sub admin', subAdminId);
+      const response = await adminAPI.assignToSubAdmin(requestId, subAdminId);
+      console.log('[FRONTEND] Assignment response:', response);
+      
       await loadData(); // Reload data
       setShowAssignModal(false);
       setSelectedRequest(null);
       showSuccess('Assignment Successful', 'Request assigned to Sub Admin successfully!');
     } catch (error) {
-      console.error('Error assigning to sub admin:', error);
+      console.error('[FRONTEND] Error assigning to sub admin:', error);
       showError('Assignment Failed', 'Failed to assign request to Sub Admin. Please try again.');
     }
   };

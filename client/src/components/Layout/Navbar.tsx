@@ -143,7 +143,7 @@ const Navbar: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 <Link 
-                  to={`/profile/${user.id}`}
+                  to={`/profile/${user._id}`}
                   className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   {user.firstName} {user.lastName}

@@ -4,7 +4,7 @@ import { User, PendingRequest, Module, MockTest, TestAssignment, TestResult, Mod
 export const initializeMockData = () => {
   // Admin user
   const adminUser: User = {
-    id: '1',
+    _id: '1',
     firstName: 'Admin',
     lastName: 'User',
     email: 'admin@example.com',
@@ -17,7 +17,7 @@ export const initializeMockData = () => {
   // Student users
   const studentUsers: User[] = [
     {
-      id: '2',
+      _id: '2',
       firstName: 'John',
       lastName: 'Doe',
       email: 'john@example.com',
@@ -27,7 +27,7 @@ export const initializeMockData = () => {
       createdAt: '2024-01-15T00:00:00Z'
     },
     {
-      id: '3',
+      _id: '3',
       firstName: 'Jane',
       lastName: 'Smith',
       email: 'jane@student.com',
@@ -41,7 +41,7 @@ export const initializeMockData = () => {
   // Pending requests
   const pendingRequests: PendingRequest[] = [
     {
-      id: '4',
+      _id: '4',
       firstName: 'Alice',
       lastName: 'Johnson',
       email: 'alice@student.com',
@@ -50,7 +50,7 @@ export const initializeMockData = () => {
       createdAt: '2024-02-01T00:00:00Z'
     },
     {
-      id: '5',
+      _id: '5',
       firstName: 'Bob',
       lastName: 'Wilson',
       email: 'bob@student.com',
@@ -63,7 +63,7 @@ export const initializeMockData = () => {
   // Sample modules
   const modules: Module[] = [
     {
-      id: '1',
+      _id: '1',
       title: 'Introduction to React',
       description: 'Learn the basics of React including components, props, and state management.',
       files: [
@@ -90,7 +90,7 @@ export const initializeMockData = () => {
       createdAt: '2024-01-10T00:00:00Z'
     },
     {
-      id: '2',
+      _id: '2',
       title: 'JavaScript Fundamentals',
       description: 'Master JavaScript concepts including ES6 features, async/await, and more.',
       files: [
@@ -112,13 +112,13 @@ export const initializeMockData = () => {
   // Sample mock tests
   const mockTests: MockTest[] = [
     {
-      id: '1',
+      _id: '1',
       title: 'React Basics Quiz',
       instructions: 'Answer all questions to the best of your ability. You have 30 minutes to complete this test.',
       description: 'Test your knowledge of React fundamentals including components, props, and state.',
       questions: [
         {
-          id: '1',
+          _id: '1',
           text: 'What is JSX?',
           options: [
             'A JavaScript library',
@@ -130,7 +130,7 @@ export const initializeMockData = () => {
           explanation: 'JSX is a syntax extension for JavaScript that allows you to write HTML-like code in your JavaScript files.'
         },
         {
-          id: '2',
+          _id: '2',
           text: 'Which hook is used for managing state in functional components?',
           options: [
             'useEffect',
@@ -142,7 +142,7 @@ export const initializeMockData = () => {
           explanation: 'useState is the primary hook for managing local state in functional components.'
         },
         {
-          id: '3',
+          _id: '3',
           text: 'What is the purpose of the key prop in React lists?',
           options: [
             'To style list items',
@@ -158,13 +158,13 @@ export const initializeMockData = () => {
       createdAt: '2024-01-15T00:00:00Z'
     },
     {
-      id: '2',
+      _id: '2',
       title: 'JavaScript Advanced Concepts',
       instructions: 'This test covers advanced JavaScript topics. Take your time and read each question carefully.',
       description: 'Advanced JavaScript concepts including closures, promises, and async programming.',
       questions: [
         {
-          id: '4',
+          _id: '4',
           text: 'What is a closure in JavaScript?',
           options: [
             'A way to close a function',
@@ -176,7 +176,7 @@ export const initializeMockData = () => {
           explanation: 'A closure is a function that has access to variables in its outer (enclosing) scope even after the outer function has returned.'
         },
         {
-          id: '5',
+          _id: '5',
           text: 'What does async/await do?',
           options: [
             'Makes code run faster',
@@ -196,7 +196,7 @@ export const initializeMockData = () => {
   // Sample test assignments
   const testAssignments: TestAssignment[] = [
     {
-      id: '1',
+      _id: '1',
       testId: '1',
       assignedTo: ['2', '3'],
       dueDate: '2024-12-31T23:59:59Z',
@@ -206,7 +206,7 @@ export const initializeMockData = () => {
       createdAt: '2024-01-16T00:00:00Z'
     },
     {
-      id: '2',
+      _id: '2',
       testId: '2',
       assignedTo: ['2'],
       dueDate: '2024-12-25T23:59:59Z',
@@ -220,7 +220,7 @@ export const initializeMockData = () => {
   // Sample test results
   const testResults: TestResult[] = [
     {
-      id: '1',
+      _id: '1',
       userId: '2',
       testId: '1',
       assignmentId: '1',
@@ -235,14 +235,14 @@ export const initializeMockData = () => {
   // Sample module assignments
   const moduleAssignments: ModuleAssignment[] = [
     {
-      id: '1',
+      _id: '1',
       moduleId: '1',
       assignedTo: ['2', '3'],
       assignedBy: '1',
       createdAt: '2024-01-11T00:00:00Z'
     },
     {
-      id: '2',
+      _id: '2',
       moduleId: '2',
       assignedTo: ['2'],
       assignedBy: '1',

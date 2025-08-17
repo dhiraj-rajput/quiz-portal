@@ -260,7 +260,7 @@ const AdminDashboard: React.FC = () => {
             ) : pendingRequests.length > 0 ? (
               <div className="space-y-4">
                 {pendingRequests.slice(0, 3).map((request: any) => (
-                  <div key={request._id || request.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                  <div key={request._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
                     <div className="flex items-center space-x-3 mb-3 sm:mb-0">
                       <div className="flex-shrink-0">
                         <AlertCircle className="h-5 w-5 text-yellow-500" />
@@ -276,13 +276,13 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button 
-                        onClick={() => handleApproveUser(request._id || request.id)}
+                        onClick={() => handleApproveUser(request._id)}
                         className="flex-1 sm:flex-none px-3 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                       >
                         Approve
                       </button>
                       <button 
-                        onClick={() => handleRejectUser(request._id || request.id)}
+                        onClick={() => handleRejectUser(request._id)}
                         className="flex-1 sm:flex-none px-3 py-2 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
                       >
                         Reject

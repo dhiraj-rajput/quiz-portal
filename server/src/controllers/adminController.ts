@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import PendingRequest from '../models/PendingRequest';
 import { AppError } from '../middleware/errorHandler';
@@ -129,6 +130,8 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
     // Build query with role-based filtering
     let query: any = {};
 
+    console.log(`[GET_PENDING] User ${userId} (${userRole}) requesting pending requests`);
+
     if (userRole === 'super_admin') {
       // Super Admin can see all pending requests and those assigned to sub admins
       query = {
@@ -137,12 +140,14 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
           { status: 'assigned_to_sub_admin' }
         ]
       };
+      console.log(`[GET_PENDING] Super admin query:`, query);
     } else if (userRole === 'sub_admin') {
       // Sub Admin can only see requests assigned to them
       query = {
         status: 'assigned_to_sub_admin',
         assignedSubAdmin: userId
       };
+      console.log(`[GET_PENDING] Sub admin query:`, query);
     }
 
     if (search) {
@@ -161,6 +166,7 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
           searchCondition
         ]
       };
+      console.log(`[GET_PENDING] Query with search:`, query);
     }
 
     // Build sort object
@@ -174,6 +180,8 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
       .skip(skip)
       .limit(limit)
       .select('firstName lastName email admissionDate createdAt status assignedSubAdmin');
+
+    console.log(`[GET_PENDING] Found ${pendingRequests.length} requests for user ${userId} (${userRole})`);
 
     // Get total count for pagination
     const totalCount = await PendingRequest.countDocuments(query);
@@ -755,21 +763,40 @@ export const assignToSubAdmin = async (req: AuthenticatedRequest, res: Response,
     const { id } = req.params;
     const { subAdminId } = req.body;
 
+    console.log(`[ASSIGNMENT] Super Admin ${req.user!.id} attempting to assign request ${id} to sub admin ${subAdminId}`);
+
     if (!subAdminId) {
       return next(new AppError('Sub Admin ID is required', 400));
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(subAdminId)) {
+      return next(new AppError('Invalid ID format', 400));
     }
 
     // Find the pending request
     const pendingRequest = await PendingRequest.findById(id);
     if (!pendingRequest) {
+      console.log(`[ASSIGNMENT ERROR] Pending request ${id} not found`);
       return next(new AppError('Pending request not found', 404));
+    }
+
+    console.log(`[ASSIGNMENT] Found pending request: ${pendingRequest.email} (status: ${pendingRequest.status})`);
+
+    // Check if request is already assigned
+    if (pendingRequest.status === 'assigned_to_sub_admin') {
+      console.log(`[ASSIGNMENT WARNING] Request ${id} is already assigned to sub admin ${pendingRequest.assignedSubAdmin}`);
+      return next(new AppError('Request is already assigned to a Sub Admin', 400));
     }
 
     // Verify sub admin exists and has correct role
     const subAdmin = await User.findById(subAdminId);
     if (!subAdmin || subAdmin.role !== 'sub_admin') {
+      console.log(`[ASSIGNMENT ERROR] Invalid sub admin ${subAdminId}. Found: ${subAdmin ? subAdmin.role : 'not found'}`);
       return next(new AppError('Invalid Sub Admin', 400));
     }
+
+    console.log(`[ASSIGNMENT] Valid sub admin found: ${subAdmin.firstName} ${subAdmin.lastName} (${subAdmin.email})`);
 
     // Update pending request
     pendingRequest.assignedSubAdmin = subAdminId;
@@ -779,11 +806,14 @@ export const assignToSubAdmin = async (req: AuthenticatedRequest, res: Response,
     
     await pendingRequest.save();
 
+    console.log(`[ASSIGNMENT SUCCESS] Request ${id} successfully assigned to sub admin ${subAdminId}`);
+
     // Send notification to sub admin
     try {
       await NotificationService.notifySubAdminAssignment(subAdminId, pendingRequest._id.toString());
+      console.log(`[ASSIGNMENT] Notification sent to sub admin ${subAdminId}`);
     } catch (notificationError) {
-      console.error('Failed to send sub admin assignment notification:', notificationError);
+      console.error('[ASSIGNMENT] Failed to send sub admin assignment notification:', notificationError);
     }
 
     res.status(200).json({
@@ -792,6 +822,7 @@ export const assignToSubAdmin = async (req: AuthenticatedRequest, res: Response,
       data: pendingRequest
     });
   } catch (error) {
+    console.error('[ASSIGNMENT ERROR] Assignment failed:', error);
     next(error);
   }
 };
