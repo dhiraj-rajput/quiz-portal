@@ -491,7 +491,7 @@ const TestManagement: React.FC = () => {
               </div>
               
               <form onSubmit={handleCreateTest}>
-                <div className="space-y-6">
+                <div className="space-y-6 px-6 py-8">
                   {/* Basic Info */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div>
@@ -556,13 +556,6 @@ const TestManagement: React.FC = () => {
                   <div>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0">
                       <h4 className="text-lg font-medium text-gray-900 dark:text-white">Questions</h4>
-                      <button
-                        type="button"
-                        onClick={addQuestion}
-                        className="w-full sm:w-auto px-4 py-2 text-indigo-600 hover:text-indigo-500 text-sm font-medium border border-indigo-300 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-                      >
-                        + Add Question
-                      </button>
                     </div>
 
                     {newTest.questions.map((question, questionIndex) => (
@@ -573,9 +566,12 @@ const TestManagement: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => removeQuestion(questionIndex)}
-                              className="text-red-600 hover:text-red-500 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                              className="ml-2 text-gray-400 hover:text-red-600 transition-colors duration-150 rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-red-500"
+                              title="Remove Question"
                             >
-                              Remove
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                                <path fillRule="evenodd" d="M10 8.586l4.95-4.95a1 1 0 111.414 1.414L11.414 10l4.95 4.95a1 1 0 01-1.414 1.414L10 11.414l-4.95 4.95a1 1 0 01-1.414-1.414L8.586 10l-4.95-4.95A1 1 0 115.05 3.636L10 8.586z" clipRule="evenodd" />
+                              </svg>
                             </button>
                           )}
                         </div>
@@ -720,7 +716,7 @@ const TestManagement: React.FC = () => {
       {/* Edit Test Modal */}
       {showEditModal && editingTest && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800 max-h-screen overflow-y-auto">
+          <div className="relative top-24 mx-auto p-0 border-none w-full max-w-2xl shadow-2xl rounded-2xl bg-white dark:bg-gray-900 max-h-screen overflow-y-auto">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Edit Test: {editingTest.title}</h3>
