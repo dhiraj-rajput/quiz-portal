@@ -45,6 +45,7 @@ const UserManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<Partial<User>>({});
   const [passwordEdit, setPasswordEdit] = useState({ newPassword: '', confirmPassword: '', changePassword: false });
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedSubAdminId, setSelectedSubAdminId] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<PendingRequest | null>(null);
   const { showSuccess, showError } = useNotifications();
   const { user: currentUser } = useAuth();
@@ -159,6 +160,7 @@ const UserManagement: React.FC = () => {
       await loadData(); // Reload data
       setShowAssignModal(false);
       setSelectedRequest(null);
+      setSelectedSubAdminId('');
       showSuccess('Assignment Successful', 'Request assigned to Sub Admin successfully!');
     } catch (error) {
       console.error('[FRONTEND] Error assigning to sub admin:', error);
@@ -166,8 +168,15 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleConfirmAssignment = () => {
+    if (selectedRequest && selectedSubAdminId) {
+      handleAssignToSubAdmin(selectedRequest._id, selectedSubAdminId);
+    }
+  };
+
   const openAssignModal = (request: PendingRequest) => {
     setSelectedRequest(request);
+    setSelectedSubAdminId('');
     setShowAssignModal(true);
   };
 
@@ -230,9 +239,32 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const handleQuickAssignUser = async (userId: string, subAdminId: string) => {
+    try {
+      console.log('[FRONTEND] Quick assigning user', userId, 'to sub admin', subAdminId);
+      const response = await adminAPI.updateUser(userId, { assignedSubAdmin: subAdminId });
+      console.log('[FRONTEND] Quick assignment response:', response);
+      
+      await loadData(); // Reload data
+      showSuccess('Assignment Successful', 'User assigned to Sub Admin successfully!');
+    } catch (error) {
+      console.error('[FRONTEND] Error quick assigning user:', error);
+      showError('Assignment Failed', 'Failed to assign user to Sub Admin. Please try again.');
+    }
+  };
+
   const handleViewUserDetails = (user: User) => {
     setSelectedUser(user);
-    setEditingUser({ ...user });
+    
+    // Handle assignedSubAdmin - could be an object (populated) or string (ID)
+    const editingUserData = { 
+      ...user,
+      assignedSubAdmin: typeof user.assignedSubAdmin === 'object' && user.assignedSubAdmin 
+        ? (user.assignedSubAdmin as any)._id 
+        : user.assignedSubAdmin
+    };
+    
+    setEditingUser(editingUserData);
     setPasswordEdit({ newPassword: '', confirmPassword: '', changePassword: false });
     setShowUserDetailModal(true);
   };
@@ -419,6 +451,17 @@ const UserManagement: React.FC = () => {
                             {user.phoneNumber && (
                               <p className="text-sm text-gray-500 dark:text-gray-400">📱 {user.phoneNumber}</p>
                             )}
+                            {/* Show assigned sub admin for students */}
+                            {user.role === 'student' && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                👨‍🏫 {user.assignedSubAdmin 
+                                  ? (typeof user.assignedSubAdmin === 'object' 
+                                      ? `${(user.assignedSubAdmin as any).firstName} ${(user.assignedSubAdmin as any).lastName}`
+                                      : 'Assigned to Sub Admin')
+                                  : 'No Sub Admin assigned'
+                                }
+                              </p>
+                            )}
                             <p className="text-xs text-gray-400 dark:text-gray-500">
                               Joined: {new Date(user.createdAt).toLocaleDateString()}
                             </p>
@@ -434,6 +477,29 @@ const UserManagement: React.FC = () => {
                           </span>
                           
                           <div className="flex items-center space-x-2">
+                            {/* Quick Assignment Dropdown for Students (Super Admin only) */}
+                            {currentUser?.role === 'super_admin' && user.role === 'student' && (
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleQuickAssignUser(user._id, e.target.value);
+                                  }
+                                }}
+                                className="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">
+                                  {user.assignedSubAdmin ? 'Reassign...' : 'Assign...'}
+                                </option>
+                                {subAdmins.map((subAdmin) => (
+                                  <option key={subAdmin._id} value={subAdmin._id}>
+                                    {subAdmin.firstName} {subAdmin.lastName}
+                                  </option>
+                                ))}
+                                <option value="">Remove Assignment</option>
+                              </select>
+                            )}
+                            
                             {/* View Details Button */}
                             <button
                               onClick={() => handleViewUserDetails(user)}
@@ -513,6 +579,31 @@ const UserManagement: React.FC = () => {
                         
                         {/* Action buttons - mobile stacked, desktop inline */}
                         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 flex-shrink-0">
+                          
+                          {/* Quick Assignment Dropdown for Super Admin */}
+                          {currentUser?.role === 'super_admin' && (request.status === 'pending' || request.status === 'assigned_to_sub_admin') && (
+                            <div className="flex items-center space-x-2">
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleAssignToSubAdmin(request._id, e.target.value);
+                                  }
+                                }}
+                                className="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                              >
+                                <option value="">
+                                  {request.status === 'assigned_to_sub_admin' ? 'Reassign...' : 'Assign...'}
+                                </option>
+                                {subAdmins.map((subAdmin) => (
+                                  <option key={subAdmin._id} value={subAdmin._id}>
+                                    {subAdmin.firstName} {subAdmin.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          
                           {/* Super Admin Actions */}
                           {currentUser?.role === 'super_admin' && request.status === 'pending' && (
                             <button
@@ -521,6 +612,17 @@ const UserManagement: React.FC = () => {
                             >
                               <UserCog className="h-4 w-4 mr-2" />
                               Assign to Sub Admin
+                            </button>
+                          )}
+                          
+                          {/* Super Admin Reassignment */}
+                          {currentUser?.role === 'super_admin' && request.status === 'assigned_to_sub_admin' && (
+                            <button
+                              onClick={() => openAssignModal(request)}
+                              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors"
+                            >
+                              <UserCog className="h-4 w-4 mr-2" />
+                              Reassign
                             </button>
                           )}
                           
@@ -851,18 +953,48 @@ const UserManagement: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Assigned Sub Admin
                     </label>
-                    <select
-                      value={editingUser.assignedSubAdmin || ''}
-                      onChange={(e) => setEditingUser({ ...editingUser, assignedSubAdmin: e.target.value || undefined })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="">No Sub Admin Assigned</option>
-                      {subAdmins.map((subAdmin) => (
-                        <option key={subAdmin._id} value={subAdmin._id}>
-                          {subAdmin.firstName} {subAdmin.lastName} ({subAdmin.email})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="space-y-3">
+                      <select
+                        value={editingUser.assignedSubAdmin || ''}
+                        onChange={(e) => setEditingUser({ ...editingUser, assignedSubAdmin: e.target.value || undefined })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value="">No Sub Admin Assigned</option>
+                        {subAdmins.map((subAdmin) => (
+                          <option key={subAdmin._id} value={subAdmin._id}>
+                            {subAdmin.firstName} {subAdmin.lastName} ({subAdmin.email})
+                          </option>
+                        ))}
+                      </select>
+                      
+                      {/* Quick Assignment Buttons */}
+                      {currentUser?.role === 'super_admin' && (
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">Quick assign:</span>
+                          {subAdmins.map((subAdmin) => (
+                            <button
+                              key={subAdmin._id}
+                              type="button"
+                              onClick={() => setEditingUser({ ...editingUser, assignedSubAdmin: subAdmin._id })}
+                              className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                                editingUser.assignedSubAdmin === subAdmin._id
+                                  ? 'bg-indigo-100 border-indigo-300 text-indigo-700 dark:bg-indigo-900 dark:border-indigo-600 dark:text-indigo-300'
+                                  : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              {subAdmin.firstName} {subAdmin.lastName}
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setEditingUser({ ...editingUser, assignedSubAdmin: undefined })}
+                            className="px-3 py-1 text-xs rounded-md border bg-red-100 border-red-300 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-800 transition-colors"
+                          >
+                            Clear Assignment
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       Students can only be assigned to one Sub Admin who will manage their content and assessments.
                     </p>
@@ -997,13 +1129,9 @@ const UserManagement: React.FC = () => {
                   Select Sub Admin:
                 </label>
                 <select
+                  value={selectedSubAdminId}
+                  onChange={(e) => setSelectedSubAdminId(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleAssignToSubAdmin(selectedRequest._id, e.target.value);
-                    }
-                  }}
-                  defaultValue=""
                 >
                   <option value="">Select a Sub Admin...</option>
                   {subAdmins.map((subAdmin) => (
@@ -1019,10 +1147,19 @@ const UserManagement: React.FC = () => {
                   onClick={() => {
                     setShowAssignModal(false);
                     setSelectedRequest(null);
+                    setSelectedSubAdminId('');
                   }}
                   className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
                 >
                   Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAssignment}
+                  disabled={!selectedSubAdminId}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Assign
                 </button>
               </div>
             </div>

@@ -26,9 +26,12 @@ const handleValidationErrors = (req: Request): string | null => {
 // @access  Public
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    console.log('[REGISTRATION] New registration attempt:', req.body.email);
+    
     // Check for validation errors
     const validationError = handleValidationErrors(req);
     if (validationError) {
+      console.log('[REGISTRATION] Validation error:', validationError);
       return next(new AppError(validationError, 400));
     }
 
@@ -36,6 +39,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
     // Validate required fields
     if (!firstName || !lastName || !email || !phoneNumber || !password || !admissionDate) {
+      console.log('[REGISTRATION] Missing required fields');
       return next(new AppError('All fields are required', 400));
     }
 
@@ -65,6 +69,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     }
 
     // Create pending request (automatically goes to Super Admin)
+    console.log('[REGISTRATION] Creating pending request for:', email);
     const pendingRequest = await PendingRequest.create({
       firstName,
       lastName,
@@ -74,6 +79,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       admissionDate,
       status: 'pending' // This will be reviewed by Super Admin first
     });
+
+    console.log('[REGISTRATION] Pending request created successfully:', pendingRequest._id);
 
     res.status(201).json({
       success: true,

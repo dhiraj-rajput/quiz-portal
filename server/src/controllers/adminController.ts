@@ -64,14 +64,14 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response, nex
     } else if (userRole === 'sub_admin') {
       // Sub Admin can only see assigned students and requests
       pendingRequestsCount = await PendingRequest.countDocuments({ 
-        assignedSubAdmin: userId,
+        assignedSubAdmin: new mongoose.Types.ObjectId(userId),
         status: 'assigned_to_sub_admin'
       });
       
       totalStudentsCount = await User.countDocuments({ 
         role: 'student', 
         status: 'active',
-        assignedSubAdmin: userId
+        assignedSubAdmin: new mongoose.Types.ObjectId(userId)
       });
 
       activeUsersCount = totalStudentsCount;
@@ -79,7 +79,7 @@ export const getDashboard = async (req: AuthenticatedRequest, res: Response, nex
       totalSuperAdminsCount = 0; // Sub admin can't see super admins
 
       recentPendingRequests = await PendingRequest.find({ 
-        assignedSubAdmin: userId,
+        assignedSubAdmin: new mongoose.Types.ObjectId(userId),
         status: 'assigned_to_sub_admin'
       })
       .sort({ createdAt: -1 })
@@ -127,10 +127,17 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
     const userRole = req.user!.role;
     const userId = req.user!.id;
 
+    console.log(`[GET_PENDING] User ${userId} (${userRole}) requesting pending requests`);
+    
+    // Debug: Check all pending requests in database
+    const allPendingRequests = await PendingRequest.find({}).select('email status assignedSubAdmin');
+    console.log(`[GET_PENDING] Total pending requests in database: ${allPendingRequests.length}`);
+    allPendingRequests.forEach((req, index) => {
+      console.log(`[GET_PENDING] DB Request ${index + 1}: ${req.email} - Status: ${req.status} - AssignedTo: ${req.assignedSubAdmin || 'none'}`);
+    });
+
     // Build query with role-based filtering
     let query: any = {};
-
-    console.log(`[GET_PENDING] User ${userId} (${userRole}) requesting pending requests`);
 
     if (userRole === 'super_admin') {
       // Super Admin can see all pending requests and those assigned to sub admins
@@ -145,7 +152,7 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
       // Sub Admin can only see requests assigned to them
       query = {
         status: 'assigned_to_sub_admin',
-        assignedSubAdmin: userId
+        assignedSubAdmin: new mongoose.Types.ObjectId(userId)
       };
       console.log(`[GET_PENDING] Sub admin query:`, query);
     }
@@ -182,6 +189,14 @@ export const getPendingRequests = async (req: AuthenticatedRequest, res: Respons
       .select('firstName lastName email admissionDate createdAt status assignedSubAdmin');
 
     console.log(`[GET_PENDING] Found ${pendingRequests.length} requests for user ${userId} (${userRole})`);
+    
+    // Log details of each request for debugging
+    pendingRequests.forEach((req, index) => {
+      console.log(`[GET_PENDING] Request ${index + 1}: ${req.email} - Status: ${req.status} - AssignedTo: ${req.assignedSubAdmin || 'none'}`);
+    });
+    
+    // Log current user info for easier debugging
+    console.log(`[GET_PENDING] Current user ID: ${userId} for easier login reference`);
 
     // Get total count for pagination
     const totalCount = await PendingRequest.countDocuments(query);
@@ -428,8 +443,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
       // 2. Their own record
       query = {
         $or: [
-          { role: 'student', assignedSubAdmin: userId },
-          { _id: userId }
+          { role: 'student', assignedSubAdmin: new mongoose.Types.ObjectId(userId) },
+          { _id: new mongoose.Types.ObjectId(userId) }
         ]
       };
     } else if (userRole === 'super_admin') {
@@ -469,9 +484,9 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
       } else if (query.$or && userRole === 'sub_admin') {
         // For sub admin with role filter, update the student filter
         if (role === 'student') {
-          query = { role: 'student', assignedSubAdmin: userId };
+          query = { role: 'student', assignedSubAdmin: new mongoose.Types.ObjectId(userId) };
         } else if (role === 'sub_admin') {
-          query = { _id: userId, role: 'sub_admin' };
+          query = { _id: new mongoose.Types.ObjectId(userId), role: 'sub_admin' };
         } else {
           // Sub admin cannot see super_admin
           query = { _id: null }; // Return no results
@@ -495,10 +510,11 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
 
     // Get users with pagination
     const users = await User.find(query)
+      .populate('assignedSubAdmin', 'firstName lastName email')
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .select('firstName lastName email phoneNumber role status admissionDate createdAt');
+      .select('firstName lastName email phoneNumber role status admissionDate assignedSubAdmin createdAt');
 
     // Get total count for pagination
     const totalCount = await User.countDocuments(query);
@@ -556,7 +572,9 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response, next
 export const updateUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, phoneNumber, role, status, admissionDate, password } = req.body;
+    const { firstName, lastName, email, phoneNumber, role, status, admissionDate, password, assignedSubAdmin } = req.body;
+
+    console.log('[UPDATE_USER] Updating user:', id, 'with assignedSubAdmin:', assignedSubAdmin);
 
     // Find the user
     const user = await User.findById(id);
@@ -600,6 +618,24 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
       user.admissionDate = new Date(admissionDate);
     }
 
+    // Handle assignedSubAdmin field for students
+    if (assignedSubAdmin !== undefined) {
+      console.log('[UPDATE_USER] Processing assignedSubAdmin:', assignedSubAdmin);
+      if (assignedSubAdmin === '' || assignedSubAdmin === null) {
+        // Remove assignment
+        user.assignedSubAdmin = undefined;
+        console.log('[UPDATE_USER] Removed sub admin assignment');
+      } else {
+        // Validate the sub admin exists and is actually a sub admin
+        const subAdmin = await User.findById(assignedSubAdmin);
+        if (!subAdmin || subAdmin.role !== 'sub_admin') {
+          return next(new AppError('Invalid Sub Admin selected', 400));
+        }
+        user.assignedSubAdmin = assignedSubAdmin;
+        console.log('[UPDATE_USER] Assigned to sub admin:', subAdmin.firstName, subAdmin.lastName);
+      }
+    }
+
     // Update password if provided
     if (password) {
       if (password.length < 8) {
@@ -628,6 +664,9 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
 
     await user.save();
 
+    // Populate the assignedSubAdmin field for the response
+    await user.populate('assignedSubAdmin', 'firstName lastName email');
+
     // Return user data without password
     const userResponse = {
       id: user._id,
@@ -638,6 +677,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response, next:
       role: user.role,
       status: user.status,
       admissionDate: user.admissionDate,
+      assignedSubAdmin: user.assignedSubAdmin,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -783,10 +823,15 @@ export const assignToSubAdmin = async (req: AuthenticatedRequest, res: Response,
 
     console.log(`[ASSIGNMENT] Found pending request: ${pendingRequest.email} (status: ${pendingRequest.status})`);
 
-    // Check if request is already assigned
+    // Check if request is already assigned to the same sub admin
+    if (pendingRequest.status === 'assigned_to_sub_admin' && pendingRequest.assignedSubAdmin?.toString() === subAdminId) {
+      console.log(`[ASSIGNMENT WARNING] Request ${id} is already assigned to the same sub admin ${pendingRequest.assignedSubAdmin}`);
+      return next(new AppError('Request is already assigned to this Sub Admin', 400));
+    }
+
+    // Allow reassignment if assigned to different sub admin
     if (pendingRequest.status === 'assigned_to_sub_admin') {
-      console.log(`[ASSIGNMENT WARNING] Request ${id} is already assigned to sub admin ${pendingRequest.assignedSubAdmin}`);
-      return next(new AppError('Request is already assigned to a Sub Admin', 400));
+      console.log(`[ASSIGNMENT] Reassigning request ${id} from sub admin ${pendingRequest.assignedSubAdmin} to ${subAdminId}`);
     }
 
     // Verify sub admin exists and has correct role
