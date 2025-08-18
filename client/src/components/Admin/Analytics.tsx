@@ -192,7 +192,7 @@ const Analytics: React.FC = () => {
     const [showDetails, setShowDetails] = useState(false);
 
     // Find which students haven't completed the test
-    const completedStudentIds = new Set(ta.results.map(r => r.userId._id));
+  const completedStudentIds = new Set(ta.results.map(r => r.userId?._id).filter(Boolean));
     const incompleteAssignments = ta.assignments.filter(a => !completedStudentIds.has(a.assignedTo._id));
 
     return (
@@ -286,7 +286,7 @@ const Analytics: React.FC = () => {
                         {ta.results.map((result) => (
                           <tr key={result._id} className="results-table-row">
                             <td className="results-table-cell">
-                              {result.userId.firstName} {result.userId.lastName}
+                              {result.userId ? `${result.userId.firstName} ${result.userId.lastName}` : 'Unknown'}
                             </td>
                             <td className="px-4 py-2">
                               <span className={`score-badge ${
@@ -497,44 +497,47 @@ const Analytics: React.FC = () => {
       {/* Result Detail Modal */}
       {showResultModal && selectedResult && (
         <div className="modal-overlay">
-          <div className="modal-container">
-            <div className="modal-header">
-              <h3 className="modal-title">
+          <div className="modal-container max-w-full w-full sm:w-[600px] md:w-[700px] lg:w-[800px] px-2 py-4 sm:p-6">
+            <div className="modal-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <h3 className="modal-title text-lg sm:text-xl font-semibold">
                 Test Results - {selectedResult!.userId.firstName} {selectedResult!.userId.lastName}
               </h3>
               <button
                 onClick={() => setShowResultModal(false)}
-                className="modal-close-button"
+                className="modal-close-button ml-auto"
               >
                 <XCircle className="h-6 w-6" />
               </button>
             </div>
 
+            {/* Make stats scrollable on mobile and responsive */}
             <div className="mb-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="test-stat-item">
-                  <div className="test-stat-value text-blue-600">
-                    {selectedResult!.percentage.toFixed(1)}%
+              <div className="overflow-x-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg min-w-[320px]">
+                  <div className="test-stat-item">
+                    <div className="test-stat-value text-blue-600">
+                      {selectedResult!.percentage.toFixed(1)}%
+                    </div>
+                    <div className="test-stat-label">Score</div>
                   </div>
-                  <div className="test-stat-label">Score</div>
-                </div>
-                <div className="test-stat-item">
-                  <div className="test-stat-value text-green-600">
-                    {selectedResult!.correctAnswers}
+                  <div className="test-stat-item">
+                    <div className="test-stat-value text-green-600">
+                      {selectedResult!.correctAnswers}
+                    </div>
+                    <div className="test-stat-label">Correct</div>
                   </div>
-                  <div className="test-stat-label">Correct</div>
-                </div>
-                <div className="test-stat-item">
-                  <div className="test-stat-value text-red-600">
-                    {selectedResult!.totalQuestions - selectedResult!.correctAnswers}
+                  <div className="test-stat-item">
+                    <div className="test-stat-value text-red-600">
+                      {selectedResult!.totalQuestions - selectedResult!.correctAnswers}
+                    </div>
+                    <div className="test-stat-label">Incorrect</div>
                   </div>
-                  <div className="test-stat-label">Incorrect</div>
-                </div>
-                <div className="test-stat-item">
-                  <div className="test-stat-value text-purple-600">
-                    {Math.round(selectedResult!.timeSpent / 60)}
+                  <div className="test-stat-item">
+                    <div className="test-stat-value text-purple-600">
+                      {Math.round(selectedResult!.timeSpent / 60)}
+                    </div>
+                    <div className="test-stat-label">Minutes</div>
                   </div>
-                  <div className="test-stat-label">Minutes</div>
                 </div>
               </div>
             </div>
@@ -550,7 +553,7 @@ const Analytics: React.FC = () => {
 
                   return (
                     <div key={question._id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex flex-col sm:flex-row items-start justify-between mb-2 gap-2">
                         <h5 className="font-medium text-gray-900 dark:text-white">
                           Question {qIndex + 1}
                         </h5>

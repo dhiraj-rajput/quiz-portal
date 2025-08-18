@@ -44,6 +44,18 @@ interface TestData {
 }
 
 const TestInterface: React.FC = () => {
+  // Add viewport meta tag for mobile fullscreen compatibility
+  useEffect(() => {
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+    document.head.appendChild(meta);
+    return () => {
+      document.head.removeChild(meta);
+    };
+  }, []);
+  // Sidebar open/close state for question set
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -1965,26 +1977,50 @@ const TestInterface: React.FC = () => {
           </div>
         </div>
 
-        {/* Question overview sidebar - Hidden on mobile, visible on desktop */}
-        <div className="hidden lg:block fixed right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Questions</h3>
-          <div className="grid grid-cols-5 gap-2">
-            {testData.questions.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentQuestionIndex(index)}
-                className={`w-8 h-8 rounded text-xs font-medium transition ${
-                  index === currentQuestionIndex
-                    ? 'bg-blue-600 text-white'
-                    : answers[index] !== undefined
-                    ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                {index + 1}
-              </button>
-            ))}
+        {/* Collapsible Question Sidebar for all devices */}
+        <div
+          className={`fixed top-0 right-0 h-full z-30 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-12'} bg-white dark:bg-gray-900 shadow-2xl flex flex-col rounded-l-2xl border-l border-gray-200 dark:border-gray-800`}
+          style={{ top: '64px', minHeight: 'calc(100vh - 64px)' }}
+        >
+          {/* Arrow button always at top right, styled as rectangle */}
+          <div className="flex items-center justify-end w-full" style={{ height: '56px', borderBottom: sidebarOpen ? '1px solid #e5e7eb' : 'none', background: 'transparent' }}>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="arrow-toggle-btn bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none border-none rounded-none shadow-none flex items-center justify-center"
+              aria-label={sidebarOpen ? 'Minimize sidebar' : 'Expand sidebar'}
+              style={{ width: '40px', height: '40px', margin: '0 8px', borderRadius: '6px', boxShadow: 'none', border: 'none', background: 'inherit' }}
+            >
+              {sidebarOpen ? <ChevronRight className="h-6 w-6 text-gray-700 dark:text-gray-200" /> : <ChevronLeft className="h-6 w-6 text-gray-700 dark:text-gray-200" />}
+            </button>
           </div>
+          {/* Sidebar content only when open */}
+          {sidebarOpen && (
+            <>
+              <div className="px-2 py-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-base text-center">Questions</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="grid grid-cols-5 gap-3">
+                  {testData.questions.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentQuestionIndex(index)}
+                      className={`w-9 h-9 rounded-lg text-xs font-semibold transition-all shadow-sm border-2 ${
+                        index === currentQuestionIndex
+                          ? 'bg-blue-600 text-white border-blue-600 scale-110'
+                          : answers[index] !== undefined
+                          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      style={{ margin: '2px' }}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Mobile Question Navigation - Shown only on mobile */}
