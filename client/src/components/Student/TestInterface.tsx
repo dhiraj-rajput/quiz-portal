@@ -2015,34 +2015,6 @@ const TestInterface: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Question Navigation - Shown only on mobile */}
-        <div className="lg:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
-          <div className="max-w-4xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Question Navigator</h3>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {Object.keys(answers).length} of {testData.questions.length} answered
-              </span>
-            </div>
-            <div className="grid grid-cols-8 sm:grid-cols-10 gap-2 max-h-24 overflow-y-auto">
-              {testData.questions.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentQuestionIndex(index)}
-                  className={`w-8 h-8 rounded text-xs font-medium transition ${
-                    index === currentQuestionIndex
-                      ? 'bg-blue-600 text-white'
-                      : answers[index] !== undefined
-                      ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
