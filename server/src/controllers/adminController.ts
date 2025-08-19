@@ -235,8 +235,9 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
       return next(new AppError('Valid role (super_admin, sub_admin, or student) is required', 400));
     }
 
-    // Find the pending request (include password field)
-    const pendingRequest = await PendingRequest.findById(id).select('+password');
+  // Find the pending request (include password field)
+  const pendingRequest = await PendingRequest.findById(id).select('+password');
+  console.log('[APPROVE_USER] PendingRequest password:', pendingRequest ? pendingRequest.password : 'No pendingRequest or password');
     
     if (!pendingRequest) {
       return next(new AppError('Pending request not found or may have already been processed', 404));
@@ -286,6 +287,7 @@ export const approveUser = async (req: AuthenticatedRequest, res: Response, next
       status: 'active',
       admissionDate: pendingRequest.admissionDate,
     };
+    console.log('[APPROVE_USER] Creating user with password:', userData.password);
 
     // Handle assignment relationships
     if (role === 'student') {

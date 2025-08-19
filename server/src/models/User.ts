@@ -156,6 +156,14 @@ userSchema.pre('save', async function (next) {
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) return next();
 
+  // Only hash if not already a bcrypt hash
+  if (typeof this.password === 'string' && this.password.startsWith('$2a$')) {
+    return next();
+  }
+  if (typeof this.password === 'string' && this.password.startsWith('$2b$')) {
+    return next();
+  }
+
   try {
     // Hash password with cost of 12
     const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12');

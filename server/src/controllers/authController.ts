@@ -35,7 +35,8 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       return next(new AppError(validationError, 400));
     }
 
-    const { firstName, lastName, email, phoneNumber, password, admissionDate } = req.body;
+  const { firstName, lastName, email, phoneNumber, password, admissionDate } = req.body;
+  console.log('[REGISTER] Raw password received:', password);
 
     // Validate required fields
     if (!firstName || !lastName || !email || !phoneNumber || !password || !admissionDate) {
@@ -79,6 +80,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       admissionDate,
       status: 'pending' // This will be reviewed by Super Admin first
     });
+    console.log('[REGISTER] Hashed password saved in PendingRequest:', pendingRequest.password);
 
     console.log('[REGISTRATION] Pending request created successfully:', pendingRequest._id);
 
@@ -114,8 +116,17 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
     // Check if user exists and get password
     const user = await User.findOne({ email }).select('+password');
-
-    if (!user || !(await user.comparePassword(password))) {
+    console.log('[LOGIN] Entered email:', email);
+    console.log('[LOGIN] Entered password:', password);
+    console.log('[LOGIN] User found:', !!user);
+    if (user) {
+      console.log('[LOGIN] User password hash:', user.password);
+      const passwordMatch = await user.comparePassword(password);
+      console.log('[LOGIN] Password match:', passwordMatch);
+      if (!passwordMatch) {
+        return next(new AppError('Invalid email or password', 401));
+      }
+    } else {
       return next(new AppError('Invalid email or password', 401));
     }
 

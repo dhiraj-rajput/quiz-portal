@@ -492,27 +492,31 @@ const TestInterface: React.FC = () => {
           setFullscreenExitCount(prev => {
             const newCount = prev + 1;
             console.log('Fullscreen exit count:', newCount);
-            
-            if (newCount >= 3) {
-              // Block all input immediately
+            // Always show warning for first and second exit, only auto-submit after third
+            if (newCount < 3) {
               setIsInputBlocked(true);
-              
-              // Show final warning with auto-submit notification
+              const remainingWarnings = 3 - newCount;
+              setFullscreenNotification({
+                show: true,
+                message: `SECURITY WARNING: You exited fullscreen mode. You have ${remainingWarnings} warning${remainingWarnings !== 1 ? 's' : ''} remaining before auto-submission. Click OK to return to fullscreen automatically.`,
+                remainingWarnings,
+                isAutoSubmitting: false,
+                showOkButton: true
+              });
+              return newCount;
+            } else {
+              // Third exit: auto-submit
+              setIsInputBlocked(true);
               setFullscreenNotification({
                 show: true,
                 message: 'FINAL WARNING: You have exited fullscreen mode 3 times. Your test will be automatically submitted in 5 seconds. ALL INPUTS ARE PERMANENTLY BLOCKED.',
                 remainingWarnings: 0,
                 isAutoSubmitting: true
               });
-              
-              // Release wake lock before submission
               if (wakeLock) {
                 wakeLock.release();
                 setWakeLock(null);
               }
-              
-              // Auto-submit after 5 seconds with comprehensive error handling
-              // Also store auto-submission state for tab close protection
               const autoSubmitData = {
                 testId: testId!,
                 answers,
@@ -522,48 +526,20 @@ const TestInterface: React.FC = () => {
                 reason: 'fullscreen_violations'
               };
               localStorage.setItem('pendingAutoSubmit', JSON.stringify(autoSubmitData));
-              
               const autoSubmitTimer = setTimeout(async () => {
                 console.log('Auto-submit triggered after 3 fullscreen exits');
-                
-                // Use the standard submit function for consistency
                 if (submitTestRef.current) {
                   console.log('Calling standard submit function for auto-submission');
                   await submitTestRef.current();
                 } else {
                   console.error('Submit function not available for auto-submission');
-                  // Fallback navigation
                   await exitFullscreenSafely();
                   setTimeout(() => {
                     navigate('/student/tests');
                   }, 1000);
                 }
               }, 5000);
-              
-              // Store timer ID for cleanup if needed
               (window as any).autoSubmitTimer = autoSubmitTimer;
-              
-              return newCount;
-            } else {
-              // Block input during warning
-              setIsInputBlocked(true);
-              
-              // Show warning notification
-              const remainingWarnings = 3 - newCount;
-              setFullscreenNotification({
-                show: true,
-                message: `SECURITY WARNING: You exited fullscreen mode. You have ${remainingWarnings} warning${remainingWarnings !== 1 ? 's' : ''} remaining before auto-submission. Click OK to return to fullscreen automatically.`,
-                remainingWarnings,
-                isAutoSubmitting: false,
-                showOkButton: true
-              });
-              
-              // DO NOT automatically restore input - user MUST press F11 to continue
-              // The input will only be restored when user successfully re-enters fullscreen
-              
-              // DO NOT automatically try to re-enter fullscreen - let user click OK button
-              // This prevents conflicts and loops
-              
               return newCount;
             }
           });
@@ -1979,28 +1955,44 @@ const TestInterface: React.FC = () => {
 
         {/* Collapsible Question Sidebar for all devices */}
         <div
-          className={`fixed top-0 right-0 h-full z-30 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-12'} bg-white dark:bg-gray-900 shadow-2xl flex flex-col rounded-l-2xl border-l border-gray-200 dark:border-gray-800`}
-          style={{ top: '64px', minHeight: 'calc(100vh - 64px)' }}
+          className={`fixed right-0 z-30 transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64 bg-white dark:bg-gray-900 shadow-2xl rounded-l-2xl border-l border-gray-200 dark:border-gray-800' : 'w-0 bg-transparent shadow-none border-none rounded-none'}`}
+          style={{
+            top: '50%',
+            transform: 'translateY(-50%)',
+            overflow: 'visible',
+            height: 'auto',
+            minHeight: '0',
+            position: 'fixed'
+          }}
         >
-          {/* Arrow button always at top right, styled as rectangle */}
-          <div className="flex items-center justify-end w-full" style={{ height: '56px', borderBottom: sidebarOpen ? '1px solid #e5e7eb' : 'none', background: 'transparent' }}>
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="arrow-toggle-btn bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none border-none rounded-none shadow-none flex items-center justify-center"
-              aria-label={sidebarOpen ? 'Minimize sidebar' : 'Expand sidebar'}
-              style={{ width: '40px', height: '40px', margin: '0 8px', borderRadius: '6px', boxShadow: 'none', border: 'none', background: 'inherit' }}
-            >
-              {sidebarOpen ? <ChevronRight className="h-6 w-6 text-gray-700 dark:text-gray-200" /> : <ChevronLeft className="h-6 w-6 text-gray-700 dark:text-gray-200" />}
-            </button>
-          </div>
+          {/* Arrow button moves with sidebar: at sidebar edge when open, at screen edge when closed */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="arrow-toggle-btn bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none border-none rounded-md shadow-md flex items-center justify-center"
+            aria-label={sidebarOpen ? 'Minimize sidebar' : 'Expand sidebar'}
+            style={{
+              width: '44px',
+              height: '44px',
+              position: 'fixed',
+              right: sidebarOpen ? '16rem' : 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 40,
+              pointerEvents: 'auto',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+            }}
+          >
+            {sidebarOpen ? <ChevronRight className="h-7 w-7 text-gray-700 dark:text-gray-200" /> : <ChevronLeft className="h-7 w-7 text-gray-700 dark:text-gray-200" />}
+          </button>
           {/* Sidebar content only when open */}
           {sidebarOpen && (
-            <>
+            <div style={{ marginTop: '56px', paddingBottom: '16px', maxHeight: 'none', overflowY: 'visible', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div className="px-2 py-3">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2 text-base text-center">Questions</h3>
               </div>
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="grid grid-cols-5 gap-3">
+              <div className="p-4" style={{ width: '100%' }}>
+                <div className="grid grid-cols-5 gap-3 justify-center" style={{ width: 'fit-content', margin: '0 auto' }}>
                   {testData.questions.map((_, index) => (
                     <button
                       key={index}
@@ -2019,7 +2011,7 @@ const TestInterface: React.FC = () => {
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </div>
 
